@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
+import { Settings, LayoutDashboard } from "lucide-react";
 
 export function Header() {
   return (
@@ -10,12 +10,20 @@ export function Header() {
       <h1 className="text-xl font-bold text-primary">
         TeamUp Scheduler
       </h1>
-      <Link href="/admin">
-        <Button variant="outline">
-          <Settings className="mr-2 h-4 w-4" />
-          Admin Panel
-        </Button>
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link href="/dashboard">
+            <Button variant="outline">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Dashboard
+            </Button>
+        </Link>
+        <Link href="/admin">
+            <Button variant="outline">
+            <Settings className="mr-2 h-4 w-4" />
+            Admin Panel
+            </Button>
+        </Link>
+      </div>
     </header>
   );
 }

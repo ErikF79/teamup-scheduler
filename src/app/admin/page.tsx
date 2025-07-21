@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check } from "lucide-react";
+import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import {
@@ -26,17 +26,28 @@ type AppData = {
 
 // --- Main Admin Page Component ---
 export default function AdminPage() {
-    const [data, setData] = useState<AppData>(() => {
-        if (typeof window !== 'undefined') {
+    const [data, setData] = useState<AppData>(mockData);
+
+    const fetchData = useCallback(() => {
+         if (typeof window !== 'undefined') {
             const savedData = localStorage.getItem('teamup_data');
             try {
-                if (savedData) return JSON.parse(savedData);
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                     if (parsedData.gyms && parsedData.teams && parsedData.sessions && parsedData.teamColors) {
+                        setData(parsedData);
+                    }
+                }
             } catch (e) {
                 console.error("Failed to parse data from localStorage", e);
             }
         }
-        return mockData;
-    });
+    }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
 
     const [editingGymId, setEditingGymId] = useState<string | null>(null);
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
@@ -195,6 +206,7 @@ export default function AdminPage() {
                             </div>
                         </Label>
                         <Input id="import-json" type="file" accept=".json" className="hidden" onChange={handleImport} />
+                        <Link href="/dashboard"><Button variant="outline"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Button></Link>
                         <Link href="/"><Button variant="outline">Torna allo Scheduler</Button></Link>
                     </div>
                 </header>
@@ -269,8 +281,18 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
     const [formData, setFormData] = useState(gym);
 
     const handleDayChange = (dayKey: number, field: 'start' | 'end', value: string) => {
+        const intValue = parseInt(value, 10);
+
+        if(field === 'start' && intValue === 0) { // If setting "Closed"
+             const newAvailability = formData.availability.map(day =>
+                day.key === dayKey ? { ...day, start: 0, end: 0 } : day
+            );
+            setFormData({ ...formData, availability: newAvailability });
+            return;
+        }
+
         const newAvailability = formData.availability.map(day =>
-            day.key === dayKey ? { ...day, [field]: parseInt(value, 10) } : day
+            day.key === dayKey ? { ...day, [field]: intValue } : day
         );
         setFormData({ ...formData, availability: newAvailability });
     };
@@ -279,9 +301,22 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
         onSave(formData);
     };
     
-    const timeOptions = useMemo(() => Array.from({ length: 24 }, (_, i) => 
-        <option key={i} value={i}>{`${i.toString().padStart(2, '0')}:00`}</option>
-    ), []);
+    const timeOptions = useMemo(() => {
+        const options = [<option key="closed" value={0}>Chiuso</option>];
+        for (let i = 0; i < 24; i++) {
+             options.push(<option key={i} value={i}>{`${i.toString().padStart(2, '0')}:00`}</option>);
+        }
+        return options;
+    }, []);
+
+    const endTimeOptions = (startHour: number) => {
+        const options = [];
+         for (let i = startHour; i <= 24; i++) {
+             options.push(<option key={i} value={i}>{`${i.toString().padStart(2, '0')}:00`}</option>);
+        }
+        return options;
+    }
+
 
     return (
         <div className="p-4 border rounded-lg space-y-4 bg-secondary/30">
@@ -296,11 +331,11 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
                     <div key={day.key} className="grid grid-cols-3 items-center gap-2">
                         <Label className="text-xs col-span-1">{day.name}</Label>
                         <div className="col-span-2 grid grid-cols-2 gap-2">
-                            <select value={day.start} onChange={(e) => handleDayChange(day.key, 'start', e.target.value)} className="w-full h-8 px-2 border rounded-md text-xs bg-card">
+                             <select value={day.start} onChange={(e) => handleDayChange(day.key, 'start', e.target.value)} className="w-full h-8 px-2 border rounded-md text-xs bg-card">
                                 {timeOptions}
                             </select>
-                             <select value={day.end} onChange={(e) => handleDayChange(day.key, 'end', e.target.value)} className="w-full h-8 px-2 border rounded-md text-xs bg-card">
-                                {timeOptions}
+                             <select value={day.end} onChange={(e) => handleDayChange(day.key, 'end', e.target.value)} className="w-full h-8 px-2 border rounded-md text-xs bg-card" disabled={day.start === 0}>
+                                {day.start === 0 ? <option value={0}>Chiuso</option> : endTimeOptions(day.start)}
                             </select>
                         </div>
                     </div>

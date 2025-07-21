@@ -32,9 +32,34 @@ const teamColors: { [key: string]: string } = {
     'team-6': 'hsl(330 80% 60%)', // Pink
 };
 
-const gyms: Gym[] = [];
-const teams: Team[] = [];
-const sessions: Session[] = [];
+const gyms: Gym[] = [
+    { id: 'gym-1', name: 'Palestra Nord' },
+    { id: 'gym-2', name: 'Palestra Sud' },
+    { id: 'gym-3', name: 'Palestra Est' },
+];
+
+const teams: Team[] = [
+    { id: 'team-1', name: 'Leoni U12', sessionsPerWeek: 2, sessionDuration: 75, seasonStartDate: '2023-09-01', seasonEndDate: '2024-05-31' },
+    { id: 'team-2', name: 'Tigri U14', sessionsPerWeek: 3, sessionDuration: 90, seasonStartDate: '2023-09-01', seasonEndDate: '2024-05-31' },
+    { id: 'team-3', name: 'Aquile U16', sessionsPerWeek: 2, sessionDuration: 90, seasonStartDate: '2023-09-01', seasonEndDate: '2024-05-31' },
+    { id: 'team-4', name: 'Pantere U18', sessionsPerWeek: 1, sessionDuration: 120, seasonStartDate: '2023-09-01', seasonEndDate: '2024-05-31' },
+];
+
+const sessions: Session[] = [
+    // Team 1
+    { id: 'session-1-1', teamId: 'team-1', duration: 75, gymId: null, startTime: null },
+    { id: 'session-1-2', teamId: 'team-1', duration: 75, gymId: 'gym-1', startTime: 1020 }, // 17:00
+    // Team 2
+    { id: 'session-2-1', teamId: 'team-2', duration: 90, gymId: null, startTime: null },
+    { id: 'session-2-2', teamId: 'team-2', duration: 90, gymId: 'gym-1', startTime: 1140 }, // 19:00
+    { id: 'session-2-3', teamId: 'team-2', duration: 90, gymId: 'gym-2', startTime: 1080 }, // 18:00
+    // Team 3
+    { id: 'session-3-1', teamId: 'team-3', duration: 90, gymId: null, startTime: null },
+    { id: 'session-3-2', teamId: 'team-3', duration: 90, gymId: null, startTime: null },
+    // Team 4
+    { id: 'session-4-1', teamId: 'team-4', duration: 120, gymId: 'gym-3', startTime: 1200 }, // 20:00
+];
+
 
 export const initialData = {
     gyms,

@@ -5,9 +5,7 @@ import React, { useState, useEffect, createContext, useContext, useCallback } fr
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users } from 'lucide-react';
-import { getGyms, getTeams, getSessions, updateSession } from '@/lib/firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '../ui/skeleton';
 
 // --- CONTEXT ---
 interface SchedulerContextType {
@@ -33,39 +31,13 @@ const useScheduler = () => {
 // --- PROVIDER ---
 export default function Scheduler() {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [gyms, setGyms] = useState<Gym[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const { teamColors } = mockData; // Colors can remain mock for now
+  const [loading, setLoading] = useState(false); // No more async loading
+  const [sessions, setSessions] = useState<Session[]>(mockData.sessions);
+  const [gyms, setGyms] = useState<Gym[]>(mockData.gyms);
+  const [teams, setTeams] = useState<Team[]>(mockData.teams);
+  const { teamColors } = mockData;
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-        const [gymsData, teamsData, sessionsData] = await Promise.all([
-            getGyms(),
-            getTeams(),
-            getSessions()
-        ]);
-        
-        setGyms(gymsData);
-        setTeams(teamsData);
-        setSessions(sessionsData);
-
-    } catch (error) {
-        console.error("Error fetching data: ", error);
-        toast({ title: "Errore", description: "Impossibile caricare i dati dal database.", variant: "destructive" });
-    } finally {
-        setLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const moveSession = async (sessionId: string, newGymId: string | null, newStartTime: number | null) => {
-    const originalSessions = [...sessions];
+  const moveSession = (sessionId: string, newGymId: string | null, newStartTime: number | null) => {
     let sessionToMove = sessions.find(s => s.id === sessionId);
     if (!sessionToMove) return;
 
@@ -77,7 +49,7 @@ export default function Scheduler() {
         newGymId !== null &&
         s.startTime !== null &&
         newStartTime !== null &&
-        s.duration > 0 && // ensure duration is valid
+        s.duration > 0 &&
         (
             (newStartTime >= s.startTime && newStartTime < s.startTime + s.duration) ||
             (s.startTime >= newStartTime && s.startTime < newStartTime + updatedSession.duration)
@@ -96,17 +68,11 @@ export default function Scheduler() {
     const newSessions = sessions.map(s => s.id === sessionId ? updatedSession : s);
     setSessions(newSessions);
 
-    try {
-        await updateSession(sessionId, { gymId: newGymId, startTime: newStartTime });
-    } catch (error) {
-        console.error("Failed to update session: ", error);
-        toast({
-            title: "Errore di Salvataggio",
-            description: "Impossibile salvare la modifica. Ripristino...",
-            variant: "destructive"
-        });
-        setSessions(originalSessions);
-    }
+    // In a real app with a backend, you would save this change here.
+    toast({
+        title: "Sessione Spostata",
+        description: "La modifica è salvata in memoria per questa sessione.",
+    });
   };
 
   const getSessionsByGym = (gymId: string | null) => {
@@ -116,21 +82,10 @@ export default function Scheduler() {
   return (
     <SchedulerContext.Provider value={{ sessions, gyms, teams, teamColors, moveSession, getSessionsByGym, loading }}>
         <div className="flex-grow flex p-4 gap-4 overflow-x-auto">
-            {loading ? (
-                <>
-                    <Skeleton className="min-w-72 h-full" />
-                    <Skeleton className="min-w-80 h-full" />
-                    <Skeleton className="min-w-80 h-full" />
-                    <Skeleton className="min-w-80 h-full" />
-                </>
-            ) : (
-                <>
-                    <UnassignedSessionsColumn />
-                    {gyms.map(gym => (
-                        <GymScheduleColumn key={gym.id} gym={gym} />
-                    ))}
-                </>
-            )}
+            <UnassignedSessionsColumn />
+            {gyms.map(gym => (
+                <GymScheduleColumn key={gym.id} gym={gym} />
+            ))}
         </div>
     </SchedulerContext.Provider>
   );
@@ -295,7 +250,6 @@ const GymScheduleColumn = ({ gym }: { gym: Gym }) => {
                         const top = ((session.startTime - START_HOUR * 60) / TOTAL_MINUTES) * 100;
                         const height = (session.duration / TOTAL_MINUTES) * 100;
                         
-                        // Prevent elements from overflowing the container
                         if (top < 0 || top >= 100) return null;
 
                         return (

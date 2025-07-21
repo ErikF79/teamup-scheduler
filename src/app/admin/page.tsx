@@ -34,9 +34,15 @@ const getDefaultDates = () => {
 
 const formatDateForInput = (dateString: string | undefined): string => {
     if (!dateString) return '';
+    // If it's already in YYYY-MM-DD format, just return it.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+    }
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return '';
+        // Add one day to fix timezone issues
+        date.setDate(date.getDate() + 1);
         return date.toISOString().split('T')[0];
     } catch (e) {
         return '';
@@ -304,7 +310,7 @@ export default function AdminPage() {
                                     {team.seasonStartDate && team.seasonEndDate && (
                                     <span className="flex items-center gap-1">
                                         <CalendarIcon className="h-3 w-3" />
-                                        {new Date(team.seasonStartDate).toLocaleDateString()} - {new Date(team.seasonEndDate).toLocaleDateString()}
+                                        {new Date(formatDateForInput(team.seasonStartDate)).toLocaleDateString()} - {new Date(formatDateForInput(team.seasonEndDate)).toLocaleDateString()}
                                     </span>
                                     )}
                                 </div>

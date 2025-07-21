@@ -89,8 +89,8 @@ export default function AdminPage() {
             name: "Nuova Squadra",
             sessionsPerWeek: 2,
             sessionDuration: 90,
-            seasonStartDate: '2024-09-01',
-            seasonEndDate: '2025-05-31',
+            seasonStartDate: '2025-09-05',
+            seasonEndDate: '2026-05-30',
         };
         const newSessions: Session[] = Array.from({ length: newTeam.sessionsPerWeek }, (_, i) => ({
             id: `session-${newTeamId}-${i + 1}`,
@@ -392,5 +392,3 @@ function TeamEditForm({ team, onSave, onCancel }: TeamEditFormProps) {
         </div>
     );
 }
-
-    

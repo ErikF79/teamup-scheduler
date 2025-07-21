@@ -9,6 +9,8 @@ export interface Team {
   name: string;
   sessionsPerWeek: number;
   sessionDuration: number; // in minutes
+  seasonStartDate: string; // YYYY-MM-DD
+  seasonEndDate: string; // YYYY-MM-DD
 }
 
 export interface Session {

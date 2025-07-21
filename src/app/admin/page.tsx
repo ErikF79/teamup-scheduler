@@ -6,12 +6,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, PlusCircle, Users, Trash2, Edit, Save, X } from "lucide-react";
+import { Building2, PlusCircle, Users, Trash2, Edit, Save, X, Calendar as CalendarIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Gym, Team } from "@/lib/teamup";
 import { addGym, getGyms, updateGym, deleteGym, addTeam, getTeams, updateTeam, deleteTeam } from "@/lib/firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+
+const getDefaultDates = () => {
+    const today = new Date();
+    const septemberFirst = new Date(today.getFullYear(), 8, 1);
+    const mayThirtyFirst = new Date(today.getFullYear() + 1, 4, 31);
+    
+    if (today > mayThirtyFirst) {
+        septemberFirst.setFullYear(today.getFullYear());
+        mayThirtyFirst.setFullYear(today.getFullYear() + 1);
+    } else if (today < septemberFirst && today.getMonth() < 8) {
+         septemberFirst.setFullYear(today.getFullYear() - 1);
+         mayThirtyFirst.setFullYear(today.getFullYear());
+    }
+
+    return {
+        startDate: septemberFirst.toISOString().split('T')[0],
+        endDate: mayThirtyFirst.toISOString().split('T')[0]
+    };
+}
 
 export default function AdminPage() {
     const { toast } = useToast();
@@ -22,12 +41,20 @@ export default function AdminPage() {
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
     
     const [editingGymName, setEditingGymName] = useState("");
-    const [editingTeamState, setEditingTeamState] = useState<Team | null>(null);
+    const [editingTeamState, setEditingTeamState] = useState<Omit<Team, 'id'>>({
+        name: "",
+        sessionsPerWeek: 0,
+        sessionDuration: 0,
+        seasonStartDate: '',
+        seasonEndDate: ''
+    });
 
     const [newGymName, setNewGymName] = useState("");
     const [newTeamName, setNewTeamName] = useState("");
     const [newSessionsPerWeek, setNewSessionsPerWeek] = useState<number>(2);
     const [newSessionDuration, setNewSessionDuration] = useState<number>(60);
+    const [newSeasonStartDate, setNewSeasonStartDate] = useState(getDefaultDates().startDate);
+    const [newSeasonEndDate, setNewSeasonEndDate] = useState(getDefaultDates().endDate);
     
     useEffect(() => {
         fetchData();
@@ -83,37 +110,52 @@ export default function AdminPage() {
             toast({ title: "Errore", description: "Il nome della squadra non può essere vuoto.", variant: "destructive" });
             return;
         }
+        if(!newSeasonStartDate || !newSeasonEndDate) {
+            toast({ title: "Errore", description: "Le date di inizio e fine stagione sono obbligatorie.", variant: "destructive" });
+            return;
+        }
         await addTeam({ 
             name: newTeamName, 
             sessionsPerWeek: newSessionsPerWeek || 0, 
-            sessionDuration: newSessionDuration || 0
+            sessionDuration: newSessionDuration || 0,
+            seasonStartDate: newSeasonStartDate,
+            seasonEndDate: newSeasonEndDate,
         });
         setNewTeamName("");
         setNewSessionsPerWeek(2);
         setNewSessionDuration(60);
+        setNewSeasonStartDate(getDefaultDates().startDate);
+        setNewSeasonEndDate(getDefaultDates().endDate);
         toast({ title: "Successo", description: "Squadra aggiunta." });
         fetchData();
     };
 
     const startEditingTeam = (team: Team) => {
         setEditingTeamId(team.id);
-        setEditingTeamState({...team});
+        const { id, ...teamData } = team;
+        setEditingTeamState(teamData);
     }
 
     const cancelEditingTeam = () => {
         setEditingTeamId(null);
-        setEditingTeamState(null);
+        setEditingTeamState({ name: "", sessionsPerWeek: 0, sessionDuration: 0, seasonStartDate: '', seasonEndDate: '' });
     }
 
     const handleUpdateTeam = async () => {
-        if (!editingTeamState || !editingTeamState.name.trim()) {
+        if (!editingTeamId || !editingTeamState.name.trim()) {
              toast({ title: "Errore", description: "Il nome della squadra non può essere vuoto.", variant: "destructive" });
             return;
         }
-        await updateTeam(editingTeamState.id, { 
+         if(!editingTeamState.seasonStartDate || !editingTeamState.seasonEndDate) {
+            toast({ title: "Errore", description: "Le date di inizio e fine stagione sono obbligatorie.", variant: "destructive" });
+            return;
+        }
+        await updateTeam(editingTeamId, { 
             name: editingTeamState.name, 
             sessionsPerWeek: editingTeamState.sessionsPerWeek || 0, 
-            sessionDuration: editingTeamState.sessionDuration || 0
+            sessionDuration: editingTeamState.sessionDuration || 0,
+            seasonStartDate: editingTeamState.seasonStartDate,
+            seasonEndDate: editingTeamState.seasonEndDate,
         });
         cancelEditingTeam();
         toast({ title: "Successo", description: "Squadra aggiornata." });
@@ -207,16 +249,16 @@ export default function AdminPage() {
                     <h3 className="font-semibold mb-2">Squadre Esistenti</h3>
                     <ul className="space-y-2 text-sm">
                         {teams.map(team => (
-                           <li key={team.id} className="flex flex-col p-2 rounded-md hover:bg-muted/50">
+                           <li key={team.id} className="flex flex-col p-2 rounded-md hover:bg-muted/50 space-y-2">
                                 <div className="flex items-center justify-between">
                                     {editingTeamId === team.id ? (
                                         <Input 
-                                            value={editingTeamState?.name || ''}
-                                            onChange={(e) => setEditingTeamState(s => s ? {...s, name: e.target.value} : null)}
+                                            value={editingTeamState.name || ''}
+                                            onChange={(e) => setEditingTeamState(s => ({...s, name: e.target.value}))}
                                             className="flex-grow mr-2"
                                         />
                                     ) : (
-                                       <span className="text-muted-foreground">{team.name} ({team.sessionsPerWeek} x {team.sessionDuration}min)</span>
+                                       <span className="text-muted-foreground font-semibold">{team.name}</span>
                                     )}
                                     <div className="flex items-center gap-2">
                                         {editingTeamId === team.id ? (
@@ -232,15 +274,33 @@ export default function AdminPage() {
                                         )}
                                     </div>
                                 </div>
-                                {editingTeamId === team.id && editingTeamState && (
+                                <div className="text-muted-foreground text-xs flex items-center gap-4">
+                                    <span>{team.sessionsPerWeek} x {team.sessionDuration}min</span>
+                                    {team.seasonStartDate && team.seasonEndDate && (
+                                    <span className="flex items-center gap-1">
+                                        <CalendarIcon className="h-3 w-3" />
+                                        {new Date(team.seasonStartDate).toLocaleDateString()} - {new Date(team.seasonEndDate).toLocaleDateString()}
+                                    </span>
+                                    )}
+                                </div>
+
+                                {editingTeamId === team.id && (
                                      <div className="grid grid-cols-2 gap-4 mt-2">
                                         <div>
                                             <Label htmlFor={`sessions-${team.id}`}>Allenamenti/sett.</Label>
-                                            <Input id={`sessions-${team.id}`} type="number" value={editingTeamState.sessionsPerWeek} onChange={(e) => setEditingTeamState(s => s ? {...s, sessionsPerWeek: parseInt(e.target.value) || 0} : null)} />
+                                            <Input id={`sessions-${team.id}`} type="number" value={editingTeamState.sessionsPerWeek} onChange={(e) => setEditingTeamState(s => ({...s, sessionsPerWeek: parseInt(e.target.value) || 0}))} />
                                         </div>
                                         <div>
                                             <Label htmlFor={`duration-${team.id}`}>Durata (min)</Label>
-                                            <Input id={`duration-${team.id}`} type="number" value={editingTeamState.sessionDuration} onChange={(e) => setEditingTeamState(s => s ? {...s, sessionDuration: parseInt(e.target.value) || 0} : null)} />
+                                            <Input id={`duration-${team.id}`} type="number" value={editingTeamState.sessionDuration} onChange={(e) => setEditingTeamState(s => ({...s, sessionDuration: parseInt(e.target.value) || 0}))} />
+                                        </div>
+                                        <div>
+                                           <Label htmlFor={`start-date-${team.id}`}>Inizio Stagione</Label>
+                                           <Input id={`start-date-${team.id}`} type="date" value={editingTeamState.seasonStartDate} onChange={(e) => setEditingTeamState(s => ({...s, seasonStartDate: e.target.value}))} />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor={`end-date-${team.id}`}>Fine Stagione</Label>
+                                            <Input id={`end-date-${team.id}`} type="date" value={editingTeamState.seasonEndDate} onChange={(e) => setEditingTeamState(s => ({...s, seasonEndDate: e.target.value}))} />
                                         </div>
                                     </div>
                                 )}
@@ -251,8 +311,10 @@ export default function AdminPage() {
                 <Separator />
                 <div className="space-y-2">
                     <h3 className="font-semibold">Aggiungi Nuova Squadra</h3>
-                    <Label htmlFor="teamName">Nome Squadra</Label>
-                    <Input id="teamName" placeholder="Es. Delfini U10" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} />
+                    <div className="space-y-2">
+                        <Label htmlFor="teamName">Nome Squadra</Label>
+                        <Input id="teamName" placeholder="Es. Delfini U10" value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="sessionsPerWeek">Allenamenti/settimana</Label>
@@ -261,6 +323,16 @@ export default function AdminPage() {
                         <div>
                             <Label htmlFor="sessionDuration">Durata (min)</Label>
                             <Input id="sessionDuration" type="number" placeholder="60" value={newSessionDuration} onChange={(e) => setNewSessionDuration(parseInt(e.target.value) || 0)}/>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <Label htmlFor="newSeasonStartDate">Inizio Stagione</Label>
+                            <Input id="newSeasonStartDate" type="date" value={newSeasonStartDate} onChange={(e) => setNewSeasonStartDate(e.target.value)} />
+                        </div>
+                        <div>
+                            <Label htmlFor="newSeasonEndDate">Fine Stagione</Label>
+                            <Input id="newSeasonEndDate" type="date" value={newSeasonEndDate} onChange={(e) => setNewSeasonEndDate(e.target.value)} />
                         </div>
                     </div>
                      <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddTeam}>

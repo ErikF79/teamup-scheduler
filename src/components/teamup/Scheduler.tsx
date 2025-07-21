@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, useEffect } from 'react';
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users } from 'lucide-react';
@@ -13,16 +13,6 @@ const MASTER_START_HOUR = 9;
 const MASTER_END_HOUR = 23;
 const TOTAL_MASTER_MINUTES = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
 
-const DAY_CONFIG = [
-    { key: 1, name: 'Lunedì', start: 17, end: 23 },
-    { key: 2, name: 'Martedì', start: 17, end: 23 },
-    { key: 3, name: 'Mercoledì', start: 17, end: 23 },
-    { key: 4, name: 'Giovedì', start: 17, end: 23 },
-    { key: 5, name: 'Venerdì', start: 17, end: 23 },
-    { key: 6, name: 'Sabato', start: 14, end: 20 },
-    { key: 7, name: 'Domenica', start: 9, end: 20 },
-];
-
 // --- CONTEXT ---
 interface SchedulerContextType {
   sessions: Session[];
@@ -32,7 +22,6 @@ interface SchedulerContextType {
   moveSession: (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null) => void;
   getSessionsByGymAndDay: (gymId: string, day: number) => Session[];
   getUnassignedSessions: () => Session[];
-  loading: boolean;
 }
 
 const SchedulerContext = createContext<SchedulerContextType | null>(null);
@@ -48,22 +37,44 @@ const useScheduler = () => {
 // --- PROVIDER ---
 export default function Scheduler() {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [sessions, setSessions] = useState<Session[]>(mockData.sessions);
-  const [gyms] = useState<Gym[]>(mockData.gyms);
-  const [teams] = useState<Team[]>(mockData.teams);
-  const { teamColors } = mockData;
+  const [appData, setAppData] = useState(mockData);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const savedData = localStorage.getItem('teamup_data');
+        try {
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                if (parsedData.gyms && parsedData.teams && parsedData.sessions) {
+                    setAppData(parsedData);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load data from localStorage", e);
+        }
+    }
+  }, []);
+
+  const updateSessions = (newSessions: Session[]) => {
+      const newAppData = { ...appData, sessions: newSessions };
+      setAppData(newAppData);
+      if (typeof window !== 'undefined') {
+          localStorage.setItem('teamup_data', JSON.stringify(newAppData));
+      }
+  };
+
 
   const moveSession = (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null) => {
-    let sessionToMove = sessions.find(s => s.id === sessionId);
+    let sessionToMove = appData.sessions.find(s => s.id === sessionId);
     if (!sessionToMove) return;
 
     const updatedSession = { ...sessionToMove, gymId: newGymId, day: newDay, startTime: newStartTime };
     
-    // Check for collisions only if moving to a scheduled slot
     if (newGymId && newDay !== null && newStartTime !== null) {
-        const dayConfig = DAY_CONFIG.find(d => d.key === newDay);
-        if (dayConfig) {
+        const gym = appData.gyms.find(g => g.id === newGymId);
+        const dayConfig = gym?.availability.find(d => d.key === newDay);
+
+        if (gym && dayConfig) {
             const slotStartMinutes = dayConfig.start * 60;
             const slotEndMinutes = dayConfig.end * 60;
             const sessionEndMinutes = newStartTime + updatedSession.duration;
@@ -71,15 +82,14 @@ export default function Scheduler() {
             if (newStartTime < slotStartMinutes || sessionEndMinutes > slotEndMinutes) {
                  toast({
                     title: "Orario non valido!",
-                    description: "La sessione è fuori dagli orari disponibili per questo giorno.",
+                    description: "La sessione è fuori dagli orari disponibili per la palestra in questo giorno.",
                     variant: "destructive"
                 });
                 return;
             }
         }
 
-
-        const collision = sessions.some(s => 
+        const collision = appData.sessions.some(s => 
             s.id !== sessionId &&
             s.gymId === newGymId &&
             s.day === newDay &&
@@ -102,9 +112,8 @@ export default function Scheduler() {
         }
     }
 
-
-    const newSessions = sessions.map(s => s.id === sessionId ? updatedSession : s);
-    setSessions(newSessions);
+    const newSessions = appData.sessions.map(s => s.id === sessionId ? updatedSession : s);
+    updateSessions(newSessions);
 
     toast({
         title: "Sessione Spostata",
@@ -113,20 +122,20 @@ export default function Scheduler() {
   };
 
   const getSessionsByGymAndDay = (gymId: string, day: number) => {
-    return sessions.filter(session => session.gymId === gymId && session.day === day);
+    return appData.sessions.filter(session => session.gymId === gymId && session.day === day);
   };
 
   const getUnassignedSessions = () => {
-      return sessions.filter(s => s.gymId === null);
+      return appData.sessions.filter(s => s.gymId === null);
   }
   
   return (
-    <SchedulerContext.Provider value={{ sessions, gyms, teams, teamColors, moveSession, getSessionsByGymAndDay, getUnassignedSessions, loading }}>
+    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions }}>
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
             <ScrollArea className="flex-grow h-full pr-4">
               <div className="space-y-6">
-                {gyms.map(gym => (
+                {appData.gyms.map(gym => (
                   <div key={gym.id}>
                     <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                        <Building2 className="text-primary"/> {gym.name}
@@ -284,7 +293,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Day Headers */}
-                    {DAY_CONFIG.map(({name}, index) => (
+                    {gym.availability.map(({name}, index) => (
                         <div key={index} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center">
                             {name}
                         </div>
@@ -300,7 +309,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                     </div>
 
                     {/* Schedule Cells */}
-                    {DAY_CONFIG.map(({key: dayKey, start, end}, dayIndex) => (
+                    {gym.availability.map(({key: dayKey, start, end}, dayIndex) => (
                         <div
                             key={dayIndex}
                             className="row-start-2 col-start-auto relative border-b border-l transition-colors"
@@ -345,3 +354,5 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         </Card>
     );
 };
+
+    

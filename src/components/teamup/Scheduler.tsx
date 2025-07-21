@@ -223,13 +223,13 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             draggable={isDraggable}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            className={`p-2 rounded-lg shadow-md flex items-center gap-2 border-l-4 bg-card ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            className={`p-2 rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
-            {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />}
-            <div className="overflow-hidden w-full">
-                <p className="font-bold text-sm text-card-foreground truncate">{team?.name}</p>
+            {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />}
+            <div className="flex flex-col w-full">
+                <p className="font-bold text-sm text-card-foreground">{team?.name}</p>
                 {isPlaced && (
                      <p className="text-xs font-semibold text-primary">{startTimeStr} - {endTimeStr}</p>
                 )}
@@ -403,3 +403,5 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         </Card>
     );
 };
+
+    

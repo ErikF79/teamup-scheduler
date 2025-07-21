@@ -1,11 +1,11 @@
 
 "use client";
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users } from 'lucide-react';
-import { getGyms, getTeams, getSessions, updateSession, updateAllSessions } from '@/lib/firebase/firestore';
+import { getGyms, getTeams, getSessions, updateSession } from '@/lib/firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 
@@ -39,80 +39,30 @@ export default function Scheduler() {
   const [teams, setTeams] = useState<Team[]>([]);
   const { teamColors } = mockData; // Colors can remain mock for now
 
-  useEffect(() => {
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [gymsData, teamsData, sessionsData] = await Promise.all([
-                getGyms(),
-                getTeams(),
-                getSessions()
-            ]);
-            
-            setGyms(gymsData);
-            setTeams(teamsData);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+        const [gymsData, teamsData, sessionsData] = await Promise.all([
+            getGyms(),
+            getTeams(),
+            getSessions()
+        ]);
+        
+        setGyms(gymsData);
+        setTeams(teamsData);
+        setSessions(sessionsData);
 
-            // Logic to synchronize sessions with teams
-            const finalSessions: Session[] = [];
-            const sessionsToUpdate: Session[] = [];
-            
-            for (const team of teamsData) {
-                const teamSessions = sessionsData.filter(s => s.teamId === team.id);
-                const sessionsNeeded = team.sessionsPerWeek;
-
-                // Add existing sessions up to the required number
-                for(let i = 0; i < Math.min(teamSessions.length, sessionsNeeded); i++) {
-                    const session = teamSessions[i];
-                    if (session.duration !== team.sessionDuration) {
-                        session.duration = team.sessionDuration;
-                        sessionsToUpdate.push(session);
-                    }
-                    finalSessions.push(session);
-                }
-
-                // If more sessions are needed, create new ones
-                if (teamSessions.length < sessionsNeeded) {
-                    for (let i = teamSessions.length; i < sessionsNeeded; i++) {
-                        const newSession: Omit<Session, 'id'> = {
-                            teamId: team.id,
-                            duration: team.sessionDuration,
-                            gymId: null,
-                            startTime: null,
-                        };
-                        // We will add this to the database and get an ID
-                        sessionsToUpdate.push(newSession as Session);
-                    }
-                }
-            }
-
-            // Identify sessions to delete
-            const sessionsToDelete = sessionsData.filter(s => {
-                const team = teamsData.find(t => t.id === s.teamId);
-                if (!team) return true; // Delete sessions of deleted teams
-                const teamSessions = finalSessions.filter(fs => fs.teamId === team.id);
-                const sessionsNeeded = team.sessionsPerWeek;
-                // if session is one of the extra ones for a team that now needs fewer sessions
-                return teamSessions.indexOf(s) >= sessionsNeeded;
-            });
-            
-            if (sessionsToUpdate.length > 0 || sessionsToDelete.length > 0) {
-                 await updateAllSessions(sessionsToUpdate, sessionsToDelete.map(s => s.id));
-                 // Fetch all sessions again to get correct data with new IDs
-                 const allSessions = await getSessions();
-                 setSessions(allSessions);
-            } else {
-                 setSessions(sessionsData);
-            }
-
-        } catch (error) {
-            console.error("Error fetching data: ", error);
-            toast({ title: "Errore", description: "Impossibile caricare i dati dal database.", variant: "destructive" });
-        } finally {
-            setLoading(false);
-        }
-    };
-    fetchData();
+    } catch (error) {
+        console.error("Error fetching data: ", error);
+        toast({ title: "Errore", description: "Impossibile caricare i dati dal database.", variant: "destructive" });
+    } finally {
+        setLoading(false);
+    }
   }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const moveSession = async (sessionId: string, newGymId: string | null, newStartTime: number | null) => {
     const originalSessions = [...sessions];

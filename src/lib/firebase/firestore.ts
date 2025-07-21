@@ -1,6 +1,6 @@
 
 import { db } from './config';
-import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, setDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, DocumentReference } from 'firebase/firestore';
 import type { Gym, Team, Session } from '../teamup';
 
 // --- Gym Functions ---
@@ -21,8 +21,19 @@ export const updateGym = async (id: string, gymData: Partial<Gym>) => {
 };
 
 export const deleteGym = async (id: string) => {
+    // Also delete sessions in this gym
+    const batch = writeBatch(db);
     const gymDoc = doc(db, 'gyms', id);
-    return await deleteDoc(gymDoc);
+    batch.delete(gymDoc);
+    
+    // This is not a perfect solution for un-assigning sessions, a better way would be to update sessions.
+    const q = query(collection(db, 'sessions'), where('gymId', '==', id));
+    const sessionsSnap = await getDocs(q);
+    sessionsSnap.forEach(sessionDoc => {
+        batch.update(sessionDoc.ref, { gymId: null, startTime: null });
+    });
+
+    return await batch.commit();
 };
 
 
@@ -34,19 +45,72 @@ export const getTeams = async (): Promise<Team[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
 };
 
+const syncTeamSessions = async (teamId: string, teamData: Partial<Omit<Team, 'id'>>, batch: ReturnType<typeof writeBatch>) => {
+    const sessionsQuery = query(collection(db, 'sessions'), where('teamId', '==', teamId));
+    const snapshot = await getDocs(sessionsQuery);
+    const existingSessions = snapshot.docs.map(doc => ({ id: doc.id, ref: doc.ref, ...doc.data() } as Session & { ref: DocumentReference }));
+    
+    const requiredCount = teamData.sessionsPerWeek ?? existingSessions.length;
+    const currentCount = existingSessions.length;
+
+    // Update duration for existing sessions if changed
+    if(teamData.sessionDuration) {
+        for (const session of existingSessions) {
+            if (session.duration !== teamData.sessionDuration) {
+                 batch.update(session.ref, { duration: teamData.sessionDuration });
+            }
+        }
+    }
+
+    if (requiredCount > currentCount) {
+        // Add new sessions
+        for (let i = 0; i < requiredCount - currentCount; i++) {
+            const newSession: Omit<Session, 'id'> = {
+                teamId: teamId,
+                duration: teamData.sessionDuration ?? 60,
+                gymId: null,
+                startTime: null,
+            };
+            const sessionRef = doc(collection(db, 'sessions'));
+            batch.set(sessionRef, newSession);
+        }
+    } else if (requiredCount < currentCount) {
+        // Delete excess sessions
+        for (let i = requiredCount; i < currentCount; i++) {
+            batch.delete(existingSessions[i].ref);
+        }
+    }
+}
+
 export const addTeam = async (teamData: Omit<Team, 'id'>) => {
-    return await addDoc(teamsCollection, teamData);
+    const batch = writeBatch(db);
+    const teamRef = doc(teamsCollection);
+    batch.set(teamRef, teamData);
+    await syncTeamSessions(teamRef.id, teamData, batch);
+    return await batch.commit();
 };
 
 export const updateTeam = async (id: string, teamData: Partial<Omit<Team, 'id'>>) => {
+    const batch = writeBatch(db);
     const teamDoc = doc(db, 'teams', id);
-    return await updateDoc(teamDoc, teamData);
+    batch.update(teamDoc, teamData);
+    await syncTeamSessions(id, teamData, batch);
+    return await batch.commit();
 };
 
 export const deleteTeam = async (id: string) => {
+    const batch = writeBatch(db);
     const teamDoc = doc(db, 'teams', id);
-    // TODO: also delete sessions for this team
-    return await deleteDoc(teamDoc);
+    batch.delete(teamDoc);
+
+    // also delete sessions for this team
+    const sessionsQuery = query(collection(db, 'sessions'), where('teamId', '==', id));
+    const snapshot = await getDocs(sessionsQuery);
+    snapshot.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+
+    return await batch.commit();
 };
 
 
@@ -61,24 +125,4 @@ export const getSessions = async (): Promise<Session[]> => {
 export const updateSession = async (id: string, sessionData: Partial<Omit<Session, 'id'>>) => {
     const sessionDocRef = doc(db, 'sessions', id);
     await updateDoc(sessionDocRef, sessionData);
-};
-
-
-export const updateAllSessions = async (sessionsToUpdate: Session[], sessionIdsToDelete: string[]) => {
-    const batch = writeBatch(db);
-
-    // Process sessions to be updated or created
-    sessionsToUpdate.forEach(session => {
-        const { id, ...sessionData } = session;
-        const sessionRef = id ? doc(db, 'sessions', id) : doc(sessionsCollection);
-        batch.set(sessionRef, sessionData, { merge: true });
-    });
-
-    // Process sessions to be deleted
-    sessionIdsToDelete.forEach(sessionId => {
-        const sessionRef = doc(db, 'sessions', sessionId);
-        batch.delete(sessionRef);
-    });
-   
-    await batch.commit();
 };

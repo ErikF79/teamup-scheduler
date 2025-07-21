@@ -52,13 +52,7 @@ export default function AdminPage() {
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
     
     const [editingGymName, setEditingGymName] = useState("");
-    const [editingTeamState, setEditingTeamState] = useState<Omit<Team, 'id'>>({
-        name: "",
-        sessionsPerWeek: 0,
-        sessionDuration: 0,
-        seasonStartDate: '',
-        seasonEndDate: ''
-    });
+    const [editingTeamState, setEditingTeamState] = useState<Partial<Team>>({});
 
     const [newGymName, setNewGymName] = useState("");
     const [newTeamName, setNewTeamName] = useState("");
@@ -158,9 +152,8 @@ export default function AdminPage() {
 
     const startEditingTeam = (team: Team) => {
         setEditingTeamId(team.id);
-        const { id, ...teamData } = team;
         setEditingTeamState({
-            ...teamData,
+            ...team,
             seasonStartDate: formatDateForInput(team.seasonStartDate),
             seasonEndDate: formatDateForInput(team.seasonEndDate)
         });
@@ -168,11 +161,11 @@ export default function AdminPage() {
 
     const cancelEditingTeam = () => {
         setEditingTeamId(null);
-        setEditingTeamState({ name: "", sessionsPerWeek: 0, sessionDuration: 0, seasonStartDate: '', seasonEndDate: '' });
+        setEditingTeamState({});
     }
 
     const handleUpdateTeam = async () => {
-        if (!editingTeamId || !editingTeamState.name.trim()) {
+        if (!editingTeamId || !editingTeamState.name?.trim()) {
              toast({ title: "Errore", description: "Il nome della squadra non può essere vuoto.", variant: "destructive" });
             return;
         }
@@ -180,13 +173,10 @@ export default function AdminPage() {
             toast({ title: "Errore", description: "Le date di inizio e fine stagione sono obbligatorie.", variant: "destructive" });
             return;
         }
-        await updateTeam(editingTeamId, { 
-            name: editingTeamState.name, 
-            sessionsPerWeek: editingTeamState.sessionsPerWeek || 0, 
-            sessionDuration: editingTeamState.sessionDuration || 0,
-            seasonStartDate: editingTeamState.seasonStartDate,
-            seasonEndDate: editingTeamState.seasonEndDate,
-        });
+        
+        const { id, ...teamDataToUpdate } = editingTeamState;
+        await updateTeam(editingTeamId, teamDataToUpdate);
+
         cancelEditingTeam();
         toast({ title: "Successo", description: "Squadra aggiornata." });
         fetchData();

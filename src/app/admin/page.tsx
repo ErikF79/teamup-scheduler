@@ -10,6 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check } from "lucide-react";
 import Link from "next/link";
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 type AppData = {
     gyms: Gym[];
@@ -158,7 +164,7 @@ export default function AdminPage() {
         reader.onload = (e) => {
             try {
                 const text = e.target?.result;
-                if (typeof text === 'string') {
+                if (typeof (text) === 'string') {
                     const parsedData = JSON.parse(text);
                     // Basic validation
                     if (parsedData.gyms && parsedData.teams && parsedData.sessions && parsedData.teamColors) {
@@ -177,77 +183,79 @@ export default function AdminPage() {
 
 
     return (
-        <div className="min-h-screen bg-background">
-            <header className="flex items-center justify-between p-4 border-b bg-card">
-                <h1 className="text-xl font-bold text-primary">Admin Panel</h1>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Esporta</Button>
-                    <Label htmlFor="import-json" className="cursor-pointer">
-                        <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                           <Upload className="mr-2 h-4 w-4" /> Importa
-                        </div>
-                    </Label>
-                    <Input id="import-json" type="file" accept=".json" className="hidden" onChange={handleImport} />
-                    <Link href="/"><Button variant="outline">Torna allo Scheduler</Button></Link>
-                </div>
-            </header>
+        <TooltipProvider>
+            <div className="min-h-screen bg-background">
+                <header className="flex items-center justify-between p-4 border-b bg-card">
+                    <h1 className="text-xl font-bold text-primary">Admin Panel</h1>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Esporta</Button>
+                        <Label htmlFor="import-json" className="cursor-pointer">
+                            <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                               <Upload className="mr-2 h-4 w-4" /> Importa
+                            </div>
+                        </Label>
+                        <Input id="import-json" type="file" accept=".json" className="hidden" onChange={handleImport} />
+                        <Link href="/"><Button variant="outline">Torna allo Scheduler</Button></Link>
+                    </div>
+                </header>
 
-            <main className="p-4 md:p-8 grid gap-8 md:grid-cols-2 items-start">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Building2 className="text-primary" /> Gestione Palestre</CardTitle>
-                        <CardDescription>Aggiungi, modifica o elimina le palestre e i loro orari.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                            {data.gyms.map(gym =>
-                                editingGymId === gym.id ? (
-                                    <GymEditForm key={gym.id} gym={gym} onSave={handleUpdateGym} onCancel={() => setEditingGymId(null)} />
-                                ) : (
-                                    <div key={gym.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
-                                        <span className="font-medium">{gym.name}</span>
-                                        <div className="flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => setEditingGymId(gym.id)}><Pencil className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteGym(gym.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                <main className="p-4 md:p-8 grid gap-8 md:grid-cols-2 items-start">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Building2 className="text-primary" /> Gestione Palestre</CardTitle>
+                            <CardDescription>Aggiungi, modifica o elimina le palestre e i loro orari.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-3">
+                                {data.gyms.map(gym =>
+                                    editingGymId === gym.id ? (
+                                        <GymEditForm key={gym.id} gym={gym} onSave={handleUpdateGym} onCancel={() => setEditingGymId(null)} />
+                                    ) : (
+                                        <div key={gym.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
+                                            <span className="font-medium">{gym.name}</span>
+                                            <div className="flex items-center gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => setEditingGymId(gym.id)}><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteGym(gym.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            </div>
                                         </div>
-                                    </div>
-                                )
-                            )}
-                        </div>
-                        <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddGym}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Palestra
-                        </Button>
-                    </CardContent>
-                </Card>
+                                    )
+                                )}
+                            </div>
+                            <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddGym}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Palestra
+                            </Button>
+                        </CardContent>
+                    </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Users className="text-primary" /> Gestione Squadre</CardTitle>
-                        <CardDescription>Definisci le squadre, le sessioni settimanali e il periodo.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                            {data.teams.map(team =>
-                                editingTeamId === team.id ? (
-                                    <TeamEditForm key={team.id} team={team} onSave={handleUpdateTeam} onCancel={() => setEditingTeamId(null)} />
-                                ) : (
-                                    <div key={team.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
-                                        <span className="font-medium">{team.name}</span>
-                                        <div className="flex items-center gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => setEditingTeamId(team.id)}><Pencil className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteTeam(team.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Users className="text-primary" /> Gestione Squadre</CardTitle>
+                            <CardDescription>Definisci le squadre, le sessioni settimanali e il periodo.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-3">
+                                {data.teams.map(team =>
+                                    editingTeamId === team.id ? (
+                                        <TeamEditForm key={team.id} team={team} onSave={handleUpdateTeam} onCancel={() => setEditingTeamId(null)} />
+                                    ) : (
+                                        <div key={team.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
+                                            <span className="font-medium">{team.name}</span>
+                                            <div className="flex items-center gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => setEditingTeamId(team.id)}><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteTeam(team.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            </div>
                                         </div>
-                                    </div>
-                                )
-                            )}
-                        </div>
-                        <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddTeam}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Squadra
-                        </Button>
-                    </CardContent>
-                </Card>
-            </main>
-        </div>
+                                    )
+                                )}
+                            </div>
+                            <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddTeam}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Squadra
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </main>
+            </div>
+        </TooltipProvider>
     );
 }
 
@@ -299,8 +307,24 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
                 ))}
             </div>
             <div className="flex justify-end gap-2 mt-4">
-                <Button variant="ghost" size="icon" onClick={onCancel}><X className="h-5 w-5"/></Button>
-                <Button size="icon" onClick={handleSave}><Check className="h-5 w-5"/></Button>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={onCancel}><X className="h-5 w-5"/></Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Annulla</p>
+                    </TooltipContent>
+                </Tooltip>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={handleSave} className="text-green-600 border-green-600 hover:bg-green-100 hover:text-green-700">
+                            <Check className="h-5 w-5"/>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Salva</p>
+                    </TooltipContent>
+                </Tooltip>
             </div>
         </div>
     );
@@ -346,12 +370,27 @@ function TeamEditForm({ team, onSave, onCancel }: TeamEditFormProps) {
                 </div>
             </div>
              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="ghost" size="icon" onClick={onCancel}><X className="h-5 w-5"/></Button>
-                <Button size="icon" onClick={handleSave}><Check className="h-5 w-5"/></Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={onCancel}><X className="h-5 w-5"/></Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Annulla</p>
+                    </TooltipContent>
+                </Tooltip>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={handleSave} className="text-green-600 border-green-600 hover:bg-green-100 hover:text-green-700">
+                           <Check className="h-5 w-5"/>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Salva</p>
+                    </TooltipContent>
+                </Tooltip>
             </div>
         </div>
     );
 }
-
 
     

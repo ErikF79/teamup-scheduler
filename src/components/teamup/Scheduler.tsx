@@ -4,9 +4,9 @@
 import React, { useState, createContext, useContext } from 'react';
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GripVertical, Users } from 'lucide-react';
+import { Building2, GripVertical, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // --- CONSTANTS ---
 const START_HOUR = 17;
@@ -44,7 +44,6 @@ export default function Scheduler() {
   const [gyms] = useState<Gym[]>(mockData.gyms);
   const [teams] = useState<Team[]>(mockData.teams);
   const { teamColors } = mockData;
-  const [activeGym, setActiveGym] = useState(gyms[0]?.id || '');
 
   const moveSession = (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null) => {
     let sessionToMove = sessions.find(s => s.id === sessionId);
@@ -53,7 +52,7 @@ export default function Scheduler() {
     const updatedSession = { ...sessionToMove, gymId: newGymId, day: newDay, startTime: newStartTime };
     
     // Check for collisions only if moving to a scheduled slot
-    if (newGymId && newDay && newStartTime) {
+    if (newGymId && newDay !== null && newStartTime !== null) {
         const collision = sessions.some(s => 
             s.id !== sessionId &&
             s.gymId === newGymId &&
@@ -97,22 +96,20 @@ export default function Scheduler() {
   
   return (
     <SchedulerContext.Provider value={{ sessions, gyms, teams, teamColors, moveSession, getSessionsByGymAndDay, getUnassignedSessions, loading }}>
-        <div className="flex-grow flex p-4 gap-4 overflow-hidden">
+        <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
-            <div className="flex-grow">
-                 <Tabs value={activeGym} onValueChange={setActiveGym} className="w-full">
-                    <TabsList>
-                        {gyms.map(gym => (
-                             <TabsTrigger key={gym.id} value={gym.id}>{gym.name}</TabsTrigger>
-                        ))}
-                    </TabsList>
-                    {gyms.map(gym => (
-                        <TabsContent key={gym.id} value={gym.id}>
-                           <GymScheduleGrid gym={gym} />
-                        </TabsContent>
-                    ))}
-                </Tabs>
-            </div>
+            <ScrollArea className="flex-grow h-full pr-4">
+              <div className="space-y-6">
+                {gyms.map(gym => (
+                  <div key={gym.id}>
+                    <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+                       <Building2 className="text-primary"/> {gym.name}
+                    </h2>
+                    <GymScheduleGrid gym={gym} />
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
         </div>
     </SchedulerContext.Provider>
   );
@@ -251,7 +248,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     };
 
     return (
-        <Card className="mt-4">
+        <Card>
             <CardContent className="p-0">
                 <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr] min-w-full">
                     {/* Time Column */}
@@ -298,7 +295,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
 
                                 return (
                                     <div key={session.id} className="absolute w-full px-1" style={{ top: `${top}%`, height: `${height}%` }}>
-                                        <SessionCard session={session} isDraggable={false} />
+                                        <SessionCard session={session} isDraggable={true} />
                                     </div>
                                 );
                             })}

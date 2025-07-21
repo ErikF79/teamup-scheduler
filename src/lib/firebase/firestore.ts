@@ -68,23 +68,17 @@ export const updateAllSessions = async (sessionsToUpdate: Session[], sessionIdsT
     const batch = writeBatch(db);
 
     // Process sessions to be updated or created
-    for (const session of sessionsToUpdate) {
-        if (session.id) {
-            // Update existing session
-            const sessionRef = doc(db, 'sessions', session.id);
-            batch.update(sessionRef, session);
-        } else {
-            // Create new session
-            const newSessionRef = doc(sessionsCollection); // Firestore generates ID
-            batch.set(newSessionRef, session);
-        }
-    }
+    sessionsToUpdate.forEach(session => {
+        const { id, ...sessionData } = session;
+        const sessionRef = id ? doc(db, 'sessions', id) : doc(sessionsCollection);
+        batch.set(sessionRef, sessionData, { merge: true });
+    });
 
     // Process sessions to be deleted
-    for (const sessionId of sessionIdsToDelete) {
+    sessionIdsToDelete.forEach(sessionId => {
         const sessionRef = doc(db, 'sessions', sessionId);
         batch.delete(sessionRef);
-    }
+    });
    
-    return await batch.commit();
+    await batch.commit();
 };

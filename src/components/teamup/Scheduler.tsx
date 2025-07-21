@@ -374,7 +374,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                                     return (
                                         <div 
                                             key={hourIndex}
-                                            className={`h-24 border-b ${(!isAvailable || isClosed) ? 'bg-muted/30' : ''}`}
+                                            className={`h-24 border-b ${(!isAvailable || isClosed) ? 'bg-neutral-300' : ''}`}
                                         ></div>
                                     )
                                 })}
@@ -403,5 +403,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         </Card>
     );
 };
+
+    
 
     

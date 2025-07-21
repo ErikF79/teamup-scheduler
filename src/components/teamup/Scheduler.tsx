@@ -9,10 +9,19 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // --- CONSTANTS ---
-const START_HOUR = 17;
-const END_HOUR = 23;
-const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
-const DAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì'];
+const MASTER_START_HOUR = 9;
+const MASTER_END_HOUR = 23;
+const TOTAL_MASTER_MINUTES = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
+
+const DAY_CONFIG = [
+    { key: 1, name: 'Lunedì', start: 17, end: 23 },
+    { key: 2, name: 'Martedì', start: 17, end: 23 },
+    { key: 3, name: 'Mercoledì', start: 17, end: 23 },
+    { key: 4, name: 'Giovedì', start: 17, end: 23 },
+    { key: 5, name: 'Venerdì', start: 17, end: 23 },
+    { key: 6, name: 'Sabato', start: 14, end: 20 },
+    { key: 7, name: 'Domenica', start: 9, end: 20 },
+];
 
 // --- CONTEXT ---
 interface SchedulerContextType {
@@ -53,6 +62,23 @@ export default function Scheduler() {
     
     // Check for collisions only if moving to a scheduled slot
     if (newGymId && newDay !== null && newStartTime !== null) {
+        const dayConfig = DAY_CONFIG.find(d => d.key === newDay);
+        if (dayConfig) {
+            const slotStartMinutes = dayConfig.start * 60;
+            const slotEndMinutes = dayConfig.end * 60;
+            const sessionEndMinutes = newStartTime + updatedSession.duration;
+
+            if (newStartTime < slotStartMinutes || sessionEndMinutes > slotEndMinutes) {
+                 toast({
+                    title: "Orario non valido!",
+                    description: "La sessione è fuori dagli orari disponibili per questo giorno.",
+                    variant: "destructive"
+                });
+                return;
+            }
+        }
+
+
         const collision = sessions.some(s => 
             s.id !== sessionId &&
             s.gymId === newGymId &&
@@ -214,8 +240,8 @@ const UnassignedSessionsColumn = () => {
 const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     const { getSessionsByGymAndDay, moveSession } = useScheduler();
     
-    const timeSlots = Array.from({ length: (END_HOUR - START_HOUR) }, (_, i) => {
-        const hour = START_HOUR + i;
+    const timeSlots = Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) }, (_, i) => {
+        const hour = MASTER_START_HOUR + i;
         return `${hour.toString().padStart(2, '0')}:00`;
     });
 
@@ -228,12 +254,14 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         const dropY = e.clientY - contentRect.top;
         const totalHeight = target.offsetHeight;
 
-        const minutesFromTop = (dropY / totalHeight) * TOTAL_MINUTES;
+        const minutesFromTop = (dropY / totalHeight) * TOTAL_MASTER_MINUTES;
         const snappedMinutes = Math.round(minutesFromTop / 15) * 15;
-        const newStartTime = (START_HOUR * 60) + snappedMinutes;
+        const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
+        
+        const dayKey = dayIndex + 1;
 
         if (sessionId) {
-            moveSession(sessionId, gym.id, dayIndex + 1, newStartTime);
+            moveSession(sessionId, gym.id, dayKey, newStartTime);
         }
         target.classList.remove('bg-accent/10');
     };
@@ -250,19 +278,19 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     return (
         <Card>
             <CardContent className="p-0">
-                <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr] min-w-full">
-                    {/* Time Column */}
+                <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr,1fr,1fr] min-w-full">
+                    {/* Time Column Header */}
                     <div className="row-span-1 col-span-1 bg-card border-r">
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Day Headers */}
-                    {DAYS.map((day, index) => (
-                        <div key={index} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold">
-                            {day}
+                    {DAY_CONFIG.map(({name}, index) => (
+                        <div key={index} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center">
+                            {name}
                         </div>
                     ))}
                     
-                    {/* Time Slots */}
+                    {/* Time Slots Column */}
                     <div className="row-start-2 col-start-1 bg-card border-r">
                         {timeSlots.map(time => (
                             <div key={time} className="h-24 flex items-center justify-center text-xs text-muted-foreground border-b last:border-b-0">
@@ -272,7 +300,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                     </div>
 
                     {/* Schedule Cells */}
-                    {DAYS.map((_, dayIndex) => (
+                    {DAY_CONFIG.map(({key: dayKey, start, end}, dayIndex) => (
                         <div
                             key={dayIndex}
                             className="row-start-2 col-start-auto relative border-b border-l transition-colors"
@@ -280,25 +308,36 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                         >
-                            {/* Grid lines */}
-                            {timeSlots.slice(1).map(time => (
-                                <div key={time} className="h-24 border-b"></div>
-                            ))}
+                             {/* Background masks for unavailable times */}
+                             <div className="absolute inset-0 z-0">
+                                {timeSlots.map((_, hourIndex) => {
+                                    const currentHour = MASTER_START_HOUR + hourIndex;
+                                    const isAvailable = currentHour >= start && currentHour < end;
+                                    return (
+                                        <div 
+                                            key={hourIndex}
+                                            className={`h-24 border-b ${!isAvailable ? 'bg-muted/30' : ''}`}
+                                        ></div>
+                                    )
+                                })}
+                            </div>
 
                             {/* Scheduled Sessions */}
-                            {getSessionsByGymAndDay(gym.id, dayIndex + 1).map(session => {
-                                if (session.startTime === null || session.duration <= 0) return null;
-                                const top = ((session.startTime - START_HOUR * 60) / TOTAL_MINUTES) * 100;
-                                const height = (session.duration / TOTAL_MINUTES) * 100;
+                            <div className="relative z-10 h-full">
+                                {getSessionsByGymAndDay(gym.id, dayKey).map(session => {
+                                    if (session.startTime === null || session.duration <= 0) return null;
+                                    const top = ((session.startTime - MASTER_START_HOUR * 60) / TOTAL_MASTER_MINUTES) * 100;
+                                    const height = (session.duration / TOTAL_MASTER_MINUTES) * 100;
 
-                                if (top < 0 || top >= 100) return null;
+                                    if (top < 0 || top >= 100) return null;
 
-                                return (
-                                    <div key={session.id} className="absolute w-full px-1" style={{ top: `${top}%`, height: `${height}%` }}>
-                                        <SessionCard session={session} isDraggable={true} />
-                                    </div>
-                                );
-                            })}
+                                    return (
+                                        <div key={session.id} className="absolute w-full px-1" style={{ top: `${top}%`, height: `${height}%` }}>
+                                            <SessionCard session={session} isDraggable={true} />
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     ))}
                 </div>

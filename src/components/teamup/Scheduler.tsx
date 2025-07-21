@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, createContext, useContext, useEffect } from 'react';
+import React, { useState, createContext, useContext, useEffect, useMemo } from 'react';
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users } from 'lucide-react';
@@ -75,9 +75,20 @@ export default function Scheduler() {
         const dayConfig = gym?.availability.find(d => d.key === newDay);
 
         if (gym && dayConfig) {
-            const slotStartMinutes = dayConfig.start * 60;
-            const slotEndMinutes = dayConfig.end * 60;
-            const sessionEndMinutes = newStartTime + updatedSession.duration;
+             const slotStartMinutes = dayConfig.start * 60;
+             const slotEndMinutes = dayConfig.end * 60;
+
+             // Check for "Closed" day
+             if (slotStartMinutes === 0 && slotEndMinutes === 0) {
+                 toast({
+                    title: "Palestra Chiusa!",
+                    description: "La palestra non è disponibile in questo giorno.",
+                    variant: "destructive"
+                });
+                return;
+             }
+             
+             const sessionEndMinutes = newStartTime + updatedSession.duration;
 
             if (newStartTime < slotStartMinutes || sessionEndMinutes > slotEndMinutes) {
                  toast({
@@ -234,13 +245,15 @@ const UnassignedSessionsColumn = () => {
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 flex-grow overflow-y-auto space-y-3">
-        {unassignedSessions.length > 0 ? (
-            unassignedSessions.map(session => <SessionCard key={session.id} session={session} />)
-        ) : (
-            <div className="text-center text-muted-foreground pt-10">Tutte le sessioni sono state pianificate!</div>
-        )}
-      </CardContent>
+      <ScrollArea>
+        <CardContent className="p-4 space-y-3">
+          {unassignedSessions.length > 0 ? (
+              unassignedSessions.map(session => <SessionCard key={session.id} session={session} />)
+          ) : (
+              <div className="text-center text-muted-foreground pt-10">Tutte le sessioni sono state pianificate!</div>
+          )}
+        </CardContent>
+      </ScrollArea>
     </Card>
   );
 };
@@ -249,15 +262,16 @@ const UnassignedSessionsColumn = () => {
 const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     const { getSessionsByGymAndDay, moveSession } = useScheduler();
     
-    const timeSlots = Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) }, (_, i) => {
+    const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) }, (_, i) => {
         const hour = MASTER_START_HOUR + i;
         return `${hour.toString().padStart(2, '0')}:00`;
-    });
+    }), []);
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>, dayIndex: number) => {
         e.preventDefault();
         const sessionId = e.dataTransfer.getData('sessionId');
         const target = e.currentTarget;
+        target.classList.remove('bg-accent/10');
         const contentRect = target.getBoundingClientRect();
 
         const dropY = e.clientY - contentRect.top;
@@ -272,7 +286,6 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         if (sessionId) {
             moveSession(sessionId, gym.id, dayKey, newStartTime);
         }
-        target.classList.remove('bg-accent/10');
     };
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -287,14 +300,14 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     return (
         <Card>
             <CardContent className="p-0">
-                <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr,1fr,1fr] min-w-full">
+                <div className="grid grid-cols-[auto_repeat(7,1fr)] min-w-full">
                     {/* Time Column Header */}
                     <div className="row-span-1 col-span-1 bg-card border-r">
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Day Headers */}
                     {gym.availability.map(({name}, index) => (
-                        <div key={index} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center">
+                        <div key={index} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm">
                             {name}
                         </div>
                     ))}
@@ -318,14 +331,15 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                             onDragLeave={handleDragLeave}
                         >
                              {/* Background masks for unavailable times */}
-                             <div className="absolute inset-0 z-0">
+                             <div className="absolute inset-0 z-0 pointer-events-none">
                                 {timeSlots.map((_, hourIndex) => {
                                     const currentHour = MASTER_START_HOUR + hourIndex;
                                     const isAvailable = currentHour >= start && currentHour < end;
+                                    const isClosed = start === 0 && end === 0;
                                     return (
                                         <div 
                                             key={hourIndex}
-                                            className={`h-24 border-b ${!isAvailable ? 'bg-muted/30' : ''}`}
+                                            className={`h-24 border-b ${(!isAvailable || isClosed) ? 'bg-muted/30' : ''}`}
                                         ></div>
                                     )
                                 })}
@@ -354,5 +368,3 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         </Card>
     );
 };
-
-    

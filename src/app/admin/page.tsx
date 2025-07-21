@@ -36,6 +36,7 @@ const formatDateForInput = (dateString: string | undefined): string => {
     if (!dateString) return '';
     try {
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
         return date.toISOString().split('T')[0];
     } catch (e) {
         return '';
@@ -312,19 +313,19 @@ export default function AdminPage() {
                                      <div className="grid grid-cols-2 gap-4 mt-2">
                                         <div>
                                             <Label htmlFor={`sessions-${team.id}`}>Allenamenti/sett.</Label>
-                                            <Input id={`sessions-${team.id}`} type="number" value={editingTeamState.sessionsPerWeek} onChange={(e) => handleEditingTeamStateChange('sessionsPerWeek', parseInt(e.target.value) || 0)} />
+                                            <Input id={`sessions-${team.id}`} type="number" value={editingTeamState.sessionsPerWeek || ''} onChange={(e) => handleEditingTeamStateChange('sessionsPerWeek', parseInt(e.target.value) || 0)} />
                                         </div>
                                         <div>
                                             <Label htmlFor={`duration-${team.id}`}>Durata (min)</Label>
-                                            <Input id={`duration-${team.id}`} type="number" value={editingTeamState.sessionDuration} onChange={(e) => handleEditingTeamStateChange('sessionDuration', parseInt(e.target.value) || 0)} />
+                                            <Input id={`duration-${team.id}`} type="number" value={editingTeamState.sessionDuration || ''} onChange={(e) => handleEditingTeamStateChange('sessionDuration', parseInt(e.target.value) || 0)} />
                                         </div>
                                         <div>
                                            <Label htmlFor={`start-date-${team.id}`}>Inizio Stagione</Label>
-                                           <Input id={`start-date-${team.id}`} type="date" value={editingTeamState.seasonStartDate} onChange={(e) => handleEditingTeamStateChange('seasonStartDate', e.target.value)} />
+                                           <Input id={`start-date-${team.id}`} type="date" value={editingTeamState.seasonStartDate || ''} onChange={(e) => handleEditingTeamStateChange('seasonStartDate', e.target.value)} />
                                         </div>
                                         <div>
                                             <Label htmlFor={`end-date-${team.id}`}>Fine Stagione</Label>
-                                            <Input id={`end-date-${team.id}`} type="date" value={editingTeamState.seasonEndDate} onChange={(e) => handleEditingTeamStateChange('seasonEndDate', e.target.value)} />
+                                            <Input id={`end-date-${team.id}`} type="date" value={editingTeamState.seasonEndDate || ''} onChange={(e) => handleEditingTeamStateChange('seasonEndDate', e.target.value)} />
                                         </div>
                                     </div>
                                 )}

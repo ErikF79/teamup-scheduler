@@ -21,35 +21,18 @@ export interface Session {
 }
 
 // --- MOCK DATA ---
-const gyms: Gym[] = [
-  { id: 'gym-1', name: 'Palestra Nord' },
-  { id: 'gym-2', name: 'Palestra Sud' },
-  { id: 'gym-3', name: 'Palestra Est' },
-];
-
-const teams: Team[] = [
-  { id: 'team-1', name: 'Aquile U18', sessionsPerWeek: 2, sessionDuration: 90 },
-  { id: 'team-2', name: 'Falchi U16', sessionsPerWeek: 3, sessionDuration: 75 },
-  { id: 'team-3', name: 'Leoni U14', sessionsPerWeek: 2, sessionDuration: 60 },
-  { id: 'team-4', name: 'Tigri U12', sessionsPerWeek: 2, sessionDuration: 60 },
-];
-
 const teamColors: { [key: string]: string } = {
     'team-1': 'hsl(210 90% 60%)', // Blue
     'team-2': 'hsl(45 90% 55%)',  // Yellow
     'team-3': 'hsl(10 90% 60%)',  // Red
     'team-4': 'hsl(150 80% 50%)', // Green
+    'team-5': 'hsl(260 80% 65%)', // Purple
+    'team-6': 'hsl(330 80% 60%)', // Pink
 };
 
-const sessions: Session[] = teams.flatMap(team => {
-    return Array.from({ length: team.sessionsPerWeek }, (_, i) => ({
-        id: `session-${team.id}-${i+1}`,
-        teamId: team.id,
-        duration: team.sessionDuration,
-        gymId: null,
-        startTime: null,
-    }));
-});
+const gyms: Gym[] = [];
+const teams: Team[] = [];
+const sessions: Session[] = [];
 
 export const initialData = {
     gyms,

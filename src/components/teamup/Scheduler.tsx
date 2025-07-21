@@ -1,17 +1,23 @@
+
 "use client";
 
-import React, { useState, createContext, useContext } from 'react';
-import { initialData } from '@/lib/teamup';
-import type { Session, Gym } from '@/lib/teamup';
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users } from 'lucide-react';
+import { getGyms, getTeams, getSessions, updateSession, updateAllSessions } from '@/lib/firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '../ui/skeleton';
 
 // --- CONTEXT ---
 interface SchedulerContextType {
   sessions: Session[];
   gyms: Gym[];
+  teams: Team[];
+  teamColors: { [key: string]: string };
   moveSession: (sessionId: string, newGymId: string | null, newStartTime: number | null) => void;
   getSessionsByGym: (gymId: string | null) => Session[];
+  loading: boolean;
 }
 
 const SchedulerContext = createContext<SchedulerContextType | null>(null);
@@ -24,41 +30,99 @@ const useScheduler = () => {
   return context;
 };
 
-
 // --- PROVIDER ---
 export default function Scheduler() {
-  const [sessions, setSessions] = useState<Session[]>(initialData.sessions);
-  const { gyms, teams, teamColors } = initialData;
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [gyms, setGyms] = useState<Gym[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const { teamColors } = mockData; // Colors can remain mock for now
 
-  const moveSession = (sessionId: string, newGymId: string | null, newStartTime: number | null) => {
-    setSessions(prevSessions => {
-      const sessionToMove = prevSessions.find(s => s.id === sessionId);
-      if (!sessionToMove) return prevSessions;
-      
-      const collision = prevSessions.some(s => 
+  useEffect(() => {
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [gymsData, teamsData, sessionsData] = await Promise.all([
+                getGyms(),
+                getTeams(),
+                getSessions()
+            ]);
+            
+            setGyms(gymsData);
+            setTeams(teamsData);
+            
+            // Sync sessions with teams data
+            const syncedSessions: Session[] = teamsData.flatMap(team => {
+                const existingSessions = sessionsData.filter(s => s.teamId === team.id);
+                const newSessions = Array.from({ length: Math.max(0, team.sessionsPerWeek - existingSessions.length) }, (_, i) => ({
+                    id: `session-${team.id}-${existingSessions.length + i + 1}-${Date.now()}`,
+                    teamId: team.id,
+                    duration: team.sessionDuration,
+                    gymId: null,
+                    startTime: null,
+                }));
+
+                const updatedSessions = existingSessions.map(s => ({...s, duration: team.sessionDuration}));
+
+                return [...updatedSessions, ...newSessions].slice(0, team.sessionsPerWeek);
+            });
+            
+            await updateAllSessions(syncedSessions);
+            setSessions(syncedSessions);
+
+        } catch (error) {
+            console.error("Error fetching data: ", error);
+            toast({ title: "Errore", description: "Impossibile caricare i dati dal database.", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchData();
+  }, [toast]);
+
+  const moveSession = async (sessionId: string, newGymId: string | null, newStartTime: number | null) => {
+    const originalSessions = [...sessions];
+    let sessionToMove = sessions.find(s => s.id === sessionId);
+    if (!sessionToMove) return;
+
+    const updatedSession = { ...sessionToMove, gymId: newGymId, startTime: newStartTime };
+
+    const collision = sessions.some(s => 
         s.id !== sessionId &&
         s.gymId === newGymId &&
         newGymId !== null &&
         s.startTime !== null &&
         newStartTime !== null &&
         (
-          (newStartTime >= s.startTime && newStartTime < s.startTime + s.duration) ||
-          (s.startTime >= newStartTime && s.startTime < newStartTime + sessionToMove.duration)
+            (newStartTime >= s.startTime && newStartTime < s.startTime + s.duration) ||
+            (s.startTime >= newStartTime && s.startTime < newStartTime + updatedSession.duration)
         )
-      );
+    );
 
-      if (collision) {
-          // In a real app, use the Toaster component here.
-          console.error("Collision detected! Cannot move session.");
-          return prevSessions;
-      }
-      
-      return prevSessions.map(s =>
-        s.id === sessionId
-          ? { ...s, gymId: newGymId, startTime: newStartTime }
-          : s
-      );
-    });
+    if (collision) {
+        toast({
+            title: "Collisione Rilevata!",
+            description: "Impossibile spostare la sessione in questo slot orario.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    const newSessions = sessions.map(s => s.id === sessionId ? updatedSession : s);
+    setSessions(newSessions);
+
+    try {
+        await updateSession(sessionId, { gymId: newGymId, startTime: newStartTime });
+    } catch (error) {
+        console.error("Failed to update session: ", error);
+        toast({
+            title: "Errore di Salvataggio",
+            description: "Impossibile salvare la modifica. Ripristino...",
+            variant: "destructive"
+        });
+        setSessions(originalSessions);
+    }
   };
 
   const getSessionsByGym = (gymId: string | null) => {
@@ -66,25 +130,35 @@ export default function Scheduler() {
   };
   
   return (
-    <SchedulerContext.Provider value={{ sessions, gyms, moveSession, getSessionsByGym }}>
-      <div className="flex-grow flex p-4 gap-4 overflow-x-auto">
-        <UnassignedSessionsColumn />
-        {gyms.map(gym => (
-          <GymScheduleColumn key={gym.id} gym={gym} />
-        ))}
-      </div>
+    <SchedulerContext.Provider value={{ sessions, gyms, teams, teamColors, moveSession, getSessionsByGym, loading }}>
+        <div className="flex-grow flex p-4 gap-4 overflow-x-auto">
+            {loading ? (
+                <>
+                    <Skeleton className="min-w-72 h-full" />
+                    <Skeleton className="min-w-80 h-full" />
+                    <Skeleton className="min-w-80 h-full" />
+                    <Skeleton className="min-w-80 h-full" />
+                </>
+            ) : (
+                <>
+                    <UnassignedSessionsColumn />
+                    {gyms.map(gym => (
+                        <GymScheduleColumn key={gym.id} gym={gym} />
+                    ))}
+                </>
+            )}
+        </div>
     </SchedulerContext.Provider>
   );
 };
-
 
 // --- SESSION CARD ---
 interface SessionCardProps {
   session: Session;
 }
 const SessionCard = ({ session }: SessionCardProps) => {
-    const team = initialData.teams.find(t => t.id === session.teamId);
-    const teamColor = initialData.teamColors[session.teamId] || 'bg-gray-200';
+    const { teams, teamColors } = useScheduler();
+    const team = teams.find(t => t.id === session.teamId);
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
         e.dataTransfer.setData('sessionId', session.id);
@@ -95,13 +169,15 @@ const SessionCard = ({ session }: SessionCardProps) => {
         e.currentTarget.style.opacity = '1';
     };
 
+    if (!team) return null;
+
     return (
         <div
             draggable
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            className={`p-3 rounded-lg shadow-md cursor-grab active:cursor-grabbing flex items-center gap-3 border-l-4 ${teamColor}`}
-            style={{ borderLeftColor: initialData.teamColors[session.teamId] }}
+            className={`p-3 rounded-lg shadow-md cursor-grab active:cursor-grabbing flex items-center gap-3 border-l-4 bg-card`}
+            style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
             <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />

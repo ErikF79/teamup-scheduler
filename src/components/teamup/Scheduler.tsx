@@ -181,6 +181,14 @@ export default function Scheduler() {
   );
 };
 
+// --- UTILITY FUNCTIONS ---
+function formatTime(minutesFromDayStart: number) {
+    const hours = Math.floor(minutesFromDayStart / 60);
+    const minutes = minutesFromDayStart % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+
 // --- SESSION CARD ---
 interface SessionCardProps {
   session: Session;
@@ -205,19 +213,26 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
     };
 
     if (!team) return null;
+    
+    const isPlaced = session.startTime !== null;
+    const startTimeStr = isPlaced ? formatTime(session.startTime!) : '';
+    const endTimeStr = isPlaced ? formatTime(session.startTime! + session.duration) : '';
 
     return (
         <div
             draggable={isDraggable}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            className={`p-3 rounded-lg shadow-md flex items-center gap-3 border-l-4 bg-card ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            className={`p-2 rounded-lg shadow-md flex items-center gap-2 border-l-4 bg-card ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
             {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />}
-            <div className="overflow-hidden">
+            <div className="overflow-hidden w-full">
                 <p className="font-bold text-sm text-card-foreground truncate">{team?.name}</p>
+                {isPlaced && (
+                     <p className="text-xs font-semibold text-primary">{startTimeStr} - {endTimeStr}</p>
+                )}
                 <p className="text-xs text-muted-foreground">{session.duration} min</p>
             </div>
         </div>

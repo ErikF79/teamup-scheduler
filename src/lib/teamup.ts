@@ -57,10 +57,10 @@ const gyms: Gym[] = [
 ];
 
 const teams: Team[] = [
-    { id: 'team-1', name: 'Leoni U12', sessionsPerWeek: 2, sessionDuration: 75, seasonStartDate: '2023-09-01', seasonEndDate: '2024-05-31' },
-    { id: 'team-2', name: 'Tigri U14', sessionsPerWeek: 3, sessionDuration: 90, seasonStartDate: '2023-09-01', seasonEndDate: '2024-05-31' },
-    { id: 'team-3', name: 'Aquile U16', sessionsPerWeek: 2, sessionDuration: 90, seasonStartDate: '2023-09-01', seasonEndDate: '2024-05-31' },
-    { id: 'team-4', name: 'Pantere U18', sessionsPerWeek: 1, sessionDuration: 120, seasonStartDate: '2023-09-01', seasonEndDate: '2024-05-31' },
+    { id: 'team-1', name: 'Leoni U12', sessionsPerWeek: 2, sessionDuration: 75, seasonStartDate: '2025-09-05', seasonEndDate: '2026-05-30' },
+    { id: 'team-2', name: 'Tigri U14', sessionsPerWeek: 3, sessionDuration: 90, seasonStartDate: '2025-09-05', seasonEndDate: '2026-05-30' },
+    { id: 'team-3', name: 'Aquile U16', sessionsPerWeek: 2, sessionDuration: 90, seasonStartDate: '2025-09-05', seasonEndDate: '2026-05-30' },
+    { id: 'team-4', name: 'Pantere U18', sessionsPerWeek: 1, sessionDuration: 120, seasonStartDate: '2025-09-05', seasonEndDate: '2026-05-30' },
 ];
 
 const generateInitialSessions = (teams: Team[]): Session[] => {

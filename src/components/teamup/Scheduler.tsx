@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 
 // --- CONSTANTS ---
 const MASTER_START_HOUR = 9;
@@ -79,7 +80,7 @@ export default function Scheduler() {
              const slotEndMinutes = dayConfig.end * 60;
 
              // Check for "Closed" day
-             if (slotStartMinutes === 0 && slotEndMinutes === 0) {
+             if (dayConfig.start === 0 && dayConfig.end === 0) {
                  toast({
                     title: "Palestra Chiusa!",
                     description: "La palestra non è disponibile in questo giorno.",
@@ -144,18 +145,37 @@ export default function Scheduler() {
     <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions }}>
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
-            <ScrollArea className="flex-grow h-full pr-4">
-              <div className="space-y-6">
-                {appData.gyms.map(gym => (
-                  <div key={gym.id}>
-                    <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
-                       <Building2 className="text-primary"/> {gym.name}
-                    </h2>
-                    <GymScheduleGrid gym={gym} />
+             <div className="flex-grow flex flex-col h-full overflow-hidden">
+                <div className="flex-shrink-0 pb-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Navigazione Rapida Palestre</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-wrap gap-2">
+                             {appData.gyms.map(gym => (
+                                <a key={gym.id} href={`#${gym.id}`} onClick={(e) => {
+                                    e.preventDefault();
+                                    document.getElementById(gym.id)?.scrollIntoView({ behavior: 'smooth' });
+                                }}>
+                                    <Button variant="outline">{gym.name}</Button>
+                                </a>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
+                <ScrollArea className="flex-grow h-full pr-4">
+                  <div className="space-y-6">
+                    {appData.gyms.map(gym => (
+                      <div key={gym.id} id={gym.id} className="scroll-mt-4">
+                        <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+                           <Building2 className="text-primary"/> {gym.name}
+                        </h2>
+                        <GymScheduleGrid gym={gym} />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
+                </ScrollArea>
+            </div>
         </div>
     </SchedulerContext.Provider>
   );

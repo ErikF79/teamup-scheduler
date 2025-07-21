@@ -77,6 +77,7 @@ export default function Scheduler() {
         newGymId !== null &&
         s.startTime !== null &&
         newStartTime !== null &&
+        s.duration > 0 && // ensure duration is valid
         (
             (newStartTime >= s.startTime && newStartTime < s.startTime + s.duration) ||
             (s.startTime >= newStartTime && s.startTime < newStartTime + updatedSession.duration)
@@ -175,7 +176,7 @@ const SessionCard = ({ session }: SessionCardProps) => {
 
 // --- UNASSIGNED SESSIONS COLUMN ---
 const UnassignedSessionsColumn = () => {
-  const { getSessionsByGym, moveSession } = useScheduler();
+  const { getSessionsByGym, moveSession, sessions } = useScheduler();
   const unassignedSessions = getSessionsByGym(null);
   const [isOver, setIsOver] = useState(false);
 
@@ -194,6 +195,8 @@ const UnassignedSessionsColumn = () => {
     }
     setIsOver(false);
   };
+  
+  const totalUnassigned = sessions.filter(s => s.gymId === null).length;
 
   return (
     <Card 
@@ -207,7 +210,7 @@ const UnassignedSessionsColumn = () => {
           <Users className="h-5 w-5 text-primary" />
           Sessioni da Assegnare
           <span className="ml-auto font-bold text-white bg-primary rounded-full h-6 w-6 flex items-center justify-center text-xs">
-            {unassignedSessions.length}
+            {totalUnassigned}
           </span>
         </CardTitle>
       </CardHeader>
@@ -288,10 +291,13 @@ const GymScheduleColumn = ({ gym }: { gym: Gym }) => {
                 </div>
                 <div className="ml-16 h-full relative">
                     {scheduledSessions.map(session => {
-                        if (session.startTime === null) return null;
+                        if (session.startTime === null || session.duration <= 0) return null;
                         const top = ((session.startTime - START_HOUR * 60) / TOTAL_MINUTES) * 100;
                         const height = (session.duration / TOTAL_MINUTES) * 100;
                         
+                        // Prevent elements from overflowing the container
+                        if (top < 0 || top >= 100) return null;
+
                         return (
                             <div key={session.id} className="absolute w-full pr-2" style={{ top: `${top}%`, height: `${height}%` }}>
                                 <SessionCard session={session} />

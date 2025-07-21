@@ -15,16 +15,23 @@ import { useToast } from "@/hooks/use-toast";
 
 const getDefaultDates = () => {
     const today = new Date();
-    const septemberFirst = new Date(today.getFullYear(), 8, 1);
-    const mayThirtyFirst = new Date(today.getFullYear() + 1, 4, 31);
+    const currentYear = today.getFullYear();
     
-    if (today > mayThirtyFirst) {
-        septemberFirst.setFullYear(today.getFullYear());
-        mayThirtyFirst.setFullYear(today.getFullYear() + 1);
-    } else if (today < septemberFirst && today.getMonth() < 8) {
-         septemberFirst.setFullYear(today.getFullYear() - 1);
-         mayThirtyFirst.setFullYear(today.getFullYear());
+    // Season is typically from September to May of next year
+    let startYear = currentYear;
+    let endYear = currentYear + 1;
+
+    // If we are past May, the new season starts in September of the current year
+    if (today.getMonth() > 4) { // Month is 0-indexed, so 4 is May
+        startYear = currentYear;
+        endYear = currentYear + 1;
+    } else { // If we are before June, we are likely in the ending part of a season
+        startYear = currentYear - 1;
+        endYear = currentYear;
     }
+
+    const septemberFirst = new Date(startYear, 8, 1); // September 1st
+    const mayThirtyFirst = new Date(endYear, 4, 31); // May 31st
 
     return {
         startDate: septemberFirst.toISOString().split('T')[0],
@@ -38,12 +45,16 @@ const formatDateForInput = (dateString: string | undefined): string => {
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
         return dateString;
     }
+    // Attempt to parse other formats (like ISO strings from Firestore Timestamps)
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return '';
-        // Add one day to fix timezone issues
-        date.setDate(date.getDate() + 1);
-        return date.toISOString().split('T')[0];
+        // The date from new Date() might be off by one day due to timezones.
+        // Get the UTC date components to avoid this.
+        const year = date.getUTCFullYear();
+        const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+        const day = date.getUTCDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
     } catch (e) {
         return '';
     }
@@ -54,6 +65,7 @@ export default function AdminPage() {
     const { toast } = useToast();
     const [gyms, setGyms] = useState<Gym[]>([]);
     const [teams, setTeams] = useState<Team[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     const [editingGymId, setEditingGymId] = useState<string | null>(null);
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
@@ -69,6 +81,7 @@ export default function AdminPage() {
     const [newSeasonEndDate, setNewSeasonEndDate] = useState(getDefaultDates().endDate);
     
     const fetchData = useCallback(async () => {
+        setIsLoading(true);
         try {
             const gymsData = await getGyms();
             const teamsData = await getTeams();
@@ -77,6 +90,8 @@ export default function AdminPage() {
         } catch(error) {
             console.error("Error fetching data: ", error);
             toast({ title: "Errore", description: "Impossibile caricare i dati.", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
         }
     }, [toast]);
 
@@ -93,7 +108,7 @@ export default function AdminPage() {
             await addGym({ name: newGymName });
             setNewGymName("");
             toast({ title: "Successo", description: "Palestra aggiunta." });
-            fetchData();
+            await fetchData();
         } catch (error) {
             console.error("Error adding gym: ", error);
             toast({ title: "Errore", description: "Impossibile aggiungere la palestra.", variant: "destructive" });
@@ -118,13 +133,13 @@ export default function AdminPage() {
         await updateGym(gymId, { name: editingGymName });
         cancelEditingGym();
         toast({ title: "Successo", description: "Palestra aggiornata." });
-        fetchData();
+        await fetchData();
     };
 
     const handleDeleteGym = async (id: string) => {
         await deleteGym(id);
         toast({ title: "Successo", description: "Palestra eliminata." });
-        fetchData();
+        await fetchData();
     };
     
     const handleAddTeam = async () => {
@@ -150,7 +165,7 @@ export default function AdminPage() {
             setNewSeasonStartDate(getDefaultDates().startDate);
             setNewSeasonEndDate(getDefaultDates().endDate);
             toast({ title: "Successo", description: "Squadra aggiunta." });
-            fetchData();
+            await fetchData();
         } catch (error) {
             console.error("Error adding team: ", error);
             toast({ title: "Errore", description: "Impossibile aggiungere la squadra.", variant: "destructive" });
@@ -182,17 +197,25 @@ export default function AdminPage() {
         }
         
         const { id, ...teamDataToUpdate } = editingTeamState;
-        await updateTeam(editingTeamId, teamDataToUpdate);
+        
+        // Ensure numeric values are numbers
+        const finalData = {
+          ...teamDataToUpdate,
+          sessionsPerWeek: Number(teamDataToUpdate.sessionsPerWeek) || 0,
+          sessionDuration: Number(teamDataToUpdate.sessionDuration) || 0,
+        };
+
+        await updateTeam(editingTeamId, finalData);
 
         cancelEditingTeam();
         toast({ title: "Successo", description: "Squadra aggiornata." });
-        fetchData();
+        await fetchData();
     };
 
     const handleDeleteTeam = async (id: string) => {
         await deleteTeam(id);
         toast({ title: "Successo", description: "Squadra eliminata." });
-        fetchData();
+        await fetchData();
     };
 
     const handleEditingTeamStateChange = (field: keyof Omit<Team, 'id'>, value: string | number) => {
@@ -224,6 +247,7 @@ export default function AdminPage() {
             <CardContent className="space-y-4">
                 <div>
                     <h3 className="font-semibold mb-2">Palestre Esistenti</h3>
+                    {isLoading ? (<p>Caricamento...</p>) : (
                     <ul className="space-y-2 text-sm">
                         {gyms.map(gym => (
                             <li key={gym.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
@@ -252,6 +276,7 @@ export default function AdminPage() {
                             </li>
                         ))}
                     </ul>
+                    )}
                 </div>
                 <Separator />
                 <div className="space-y-2">
@@ -278,6 +303,7 @@ export default function AdminPage() {
             <CardContent className="space-y-4">
                  <div>
                     <h3 className="font-semibold mb-2">Squadre Esistenti</h3>
+                     {isLoading ? (<p>Caricamento...</p>) : (
                     <ul className="space-y-2 text-sm">
                         {teams.map(team => (
                            <li key={team.id} className="flex flex-col p-2 rounded-md hover:bg-muted/50 space-y-2">
@@ -319,25 +345,26 @@ export default function AdminPage() {
                                      <div className="grid grid-cols-2 gap-4 mt-2">
                                         <div>
                                             <Label htmlFor={`sessions-${team.id}`}>Allenamenti/sett.</Label>
-                                            <Input id={`sessions-${team.id}`} type="number" value={editingTeamState.sessionsPerWeek || ''} onChange={(e) => handleEditingTeamStateChange('sessionsPerWeek', parseInt(e.target.value) || 0)} />
+                                            <Input id={`sessions-${team.id}`} type="number" value={editingTeamState.sessionsPerWeek ?? ''} onChange={(e) => handleEditingTeamStateChange('sessionsPerWeek', parseInt(e.target.value) || 0)} />
                                         </div>
                                         <div>
                                             <Label htmlFor={`duration-${team.id}`}>Durata (min)</Label>
-                                            <Input id={`duration-${team.id}`} type="number" value={editingTeamState.sessionDuration || ''} onChange={(e) => handleEditingTeamStateChange('sessionDuration', parseInt(e.target.value) || 0)} />
+                                            <Input id={`duration-${team.id}`} type="number" value={editingTeamState.sessionDuration ?? ''} onChange={(e) => handleEditingTeamStateChange('sessionDuration', parseInt(e.target.value) || 0)} />
                                         </div>
                                         <div>
                                            <Label htmlFor={`start-date-${team.id}`}>Inizio Stagione</Label>
-                                           <Input id={`start-date-${team.id}`} type="date" value={editingTeamState.seasonStartDate || ''} onChange={(e) => handleEditingTeamStateChange('seasonStartDate', e.target.value)} />
+                                           <Input id={`start-date-${team.id}`} type="date" value={editingTeamState.seasonStartDate ?? ''} onChange={(e) => handleEditingTeamStateChange('seasonStartDate', e.target.value)} />
                                         </div>
                                         <div>
                                             <Label htmlFor={`end-date-${team.id}`}>Fine Stagione</Label>
-                                            <Input id={`end-date-${team.id}`} type="date" value={editingTeamState.seasonEndDate || ''} onChange={(e) => handleEditingTeamStateChange('seasonEndDate', e.target.value)} />
+                                            <Input id={`end-date-${team.id}`} type="date" value={editingTeamState.seasonEndDate ?? ''} onChange={(e) => handleEditingTeamStateChange('seasonEndDate', e.target.value)} />
                                         </div>
                                     </div>
                                 )}
                            </li>
                         ))}
                     </ul>
+                    )}
                 </div>
                 <Separator />
                 <div className="space-y-2">

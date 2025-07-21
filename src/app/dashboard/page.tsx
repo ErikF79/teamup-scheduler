@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { initialData as mockData, Gym, Team, Session } from '@/lib/teamup';
-import { Building2, Users, Calendar, ArrowLeft } from 'lucide-react';
+import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard } from 'lucide-react';
 
 type AppData = {
     gyms: Gym[];

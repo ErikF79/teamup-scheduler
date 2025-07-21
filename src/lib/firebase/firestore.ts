@@ -1,6 +1,6 @@
 
 import { db } from './config';
-import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, DocumentReference, setDoc, getDoc } from 'firebase/firestore';
 import type { Gym, Team, Session } from '../teamup';
 
 // --- Gym Functions ---
@@ -58,40 +58,45 @@ export const getSessions = async (): Promise<Session[]> => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session));
 };
 
-export const updateSession = async (id: string, sessionData: Partial<Session>) => {
-    // We need to find the document by its `id` field, which is not the same as the doc ID.
-    const q = query(sessionsCollection, where("id", "==", id));
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-        // If session doesn't exist, create it. This can happen with new sessions.
-        const sessionDoc = doc(sessionsCollection); // Auto-generate new doc ID
-        await addDoc(sessionsCollection, {...sessionData, id: id });
+export const updateSession = async (id: string, sessionData: Partial<Omit<Session, 'id'>>) => {
+    const sessionDocRef = doc(db, 'sessions', id);
+    const sessionDoc = await getDoc(sessionDocRef);
+
+    if (sessionDoc.exists()) {
+        await updateDoc(sessionDocRef, sessionData);
     } else {
-        const sessionDoc = querySnapshot.docs[0].ref;
-        await updateDoc(sessionDoc, sessionData);
+        // This case handles newly created sessions that don't exist in DB yet
+        // A full Session object should be passed in sessionData
+        await setDoc(sessionDocRef, sessionData);
     }
 };
 
 export const updateAllSessions = async (sessions: Session[]) => {
     const batch = writeBatch(db);
     
-    const sessionsFromDb = await getSessions();
-    const sessionsFromDbMap = new Map(sessionsFromDb.map(s => [s.id, s]));
-    const sessionsToUpdateMap = new Map(sessions.map(s => [s.id, s]));
+    // Get all existing sessions from DB
+    const existingSessionsSnapshot = await getDocs(sessionsCollection);
+    const existingSessionsMap = new Map<string, DocumentReference>();
+    existingSessionsSnapshot.forEach(doc => {
+        existingSessionsMap.set(doc.id, doc.ref);
+    });
 
-    for(const session of sessions) {
-        const docRef = doc(db, "sessions", session.id);
-        batch.set(docRef, session);
+    const sessionsToKeep = new Set<string>();
+
+    // Process sessions to be updated or created
+    for (const session of sessions) {
+        sessionsToKeep.add(session.id);
+        const sessionRef = doc(db, 'sessions', session.id);
+        // Use set with merge option to create or update
+        batch.set(sessionRef, session, { merge: true });
     }
-    
-    // Delete sessions from DB that are not in the new list
-    for (const dbSession of sessionsFromDb) {
-        if (!sessionsToUpdateMap.has(dbSession.id)) {
-            const docRef = doc(db, "sessions", dbSession.id);
-            batch.delete(docRef);
+
+    // Process sessions to be deleted
+    existingSessionsMap.forEach((sessionRef, sessionId) => {
+        if (!sessionsToKeep.has(sessionId)) {
+            batch.delete(sessionRef);
         }
-    }
+    });
    
     return await batch.commit();
 };

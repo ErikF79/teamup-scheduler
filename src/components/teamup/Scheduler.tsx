@@ -52,24 +52,45 @@ export default function Scheduler() {
             setGyms(gymsData);
             setTeams(teamsData);
             
-            // Sync sessions with teams data
-            const syncedSessions: Session[] = teamsData.flatMap(team => {
-                const existingSessions = sessionsData.filter(s => s.teamId === team.id);
-                const newSessions = Array.from({ length: Math.max(0, team.sessionsPerWeek - existingSessions.length) }, (_, i) => ({
-                    id: `session-${team.id}-${existingSessions.length + i + 1}-${Date.now()}`,
-                    teamId: team.id,
-                    duration: team.sessionDuration,
-                    gymId: null,
-                    startTime: null,
-                }));
+            const sessionsDataMap = new Map(sessionsData.map(s => [s.teamId, s]));
+            const newSessionsToCreate: Session[] = [];
+            const existingSessionsToUpdate: Session[] = [];
+            const finalSessions: Session[] = [];
 
-                const updatedSessions = existingSessions.map(s => ({...s, duration: team.sessionDuration}));
+            for (const team of teamsData) {
+                const teamSessions = sessionsData.filter(s => s.teamId === team.id);
+                const sessionsNeeded = team.sessionsPerWeek;
 
-                return [...updatedSessions, ...newSessions].slice(0, team.sessionsPerWeek);
-            });
+                // Update existing sessions for the team
+                for (let i = 0; i < Math.min(teamSessions.length, sessionsNeeded); i++) {
+                    const session = teamSessions[i];
+                    session.duration = team.sessionDuration;
+                    existingSessionsToUpdate.push(session);
+                    finalSessions.push(session);
+                }
+
+                // Create new sessions if needed
+                if (teamSessions.length < sessionsNeeded) {
+                    for (let i = teamSessions.length; i < sessionsNeeded; i++) {
+                        const newSession: Session = {
+                            id: `session-${team.id}-${i}-${Date.now()}`, // Temp unique ID
+                            teamId: team.id,
+                            duration: team.sessionDuration,
+                            gymId: null,
+                            startTime: null,
+                        };
+                        newSessionsToCreate.push(newSession);
+                        finalSessions.push(newSession);
+                    }
+                }
+            }
             
-            await updateAllSessions(syncedSessions);
-            setSessions(syncedSessions);
+            // This will create new sessions and delete obsolete ones
+            await updateAllSessions(finalSessions);
+            
+            // We need to fetch again to get the server-generated IDs
+            const allSessions = await getSessions();
+            setSessions(allSessions);
 
         } catch (error) {
             console.error("Error fetching data: ", error);

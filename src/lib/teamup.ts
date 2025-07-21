@@ -19,6 +19,7 @@ export interface Session {
   duration: number; // in minutes
   // scheduling properties
   gymId: string | null;
+  day: number | null; // 1 for Monday, 2 for Tuesday, etc.
   startTime: number | null; // minutes from the start of the day (e.g., 1020 for 17:00)
 }
 
@@ -47,17 +48,17 @@ const teams: Team[] = [
 
 const sessions: Session[] = [
     // Team 1
-    { id: 'session-1-1', teamId: 'team-1', duration: 75, gymId: null, startTime: null },
-    { id: 'session-1-2', teamId: 'team-1', duration: 75, gymId: 'gym-1', startTime: 1020 }, // 17:00
+    { id: 'session-1-1', teamId: 'team-1', duration: 75, gymId: null, day: null, startTime: null },
+    { id: 'session-1-2', teamId: 'team-1', duration: 75, gymId: 'gym-1', day: 1, startTime: 1020 }, // Mon 17:00
     // Team 2
-    { id: 'session-2-1', teamId: 'team-2', duration: 90, gymId: null, startTime: null },
-    { id: 'session-2-2', teamId: 'team-2', duration: 90, gymId: 'gym-1', startTime: 1140 }, // 19:00
-    { id: 'session-2-3', teamId: 'team-2', duration: 90, gymId: 'gym-2', startTime: 1080 }, // 18:00
+    { id: 'session-2-1', teamId: 'team-2', duration: 90, gymId: null, day: null, startTime: null },
+    { id: 'session-2-2', teamId: 'team-2', duration: 90, gymId: 'gym-1', day: 3, startTime: 1140 }, // Wed 19:00
+    { id: 'session-2-3', teamId: 'team-2', duration: 90, gymId: 'gym-2', day: 2, startTime: 1080 }, // Tue 18:00
     // Team 3
-    { id: 'session-3-1', teamId: 'team-3', duration: 90, gymId: null, startTime: null },
-    { id: 'session-3-2', teamId: 'team-3', duration: 90, gymId: null, startTime: null },
+    { id: 'session-3-1', teamId: 'team-3', duration: 90, gymId: null, day: null, startTime: null },
+    { id: 'session-3-2', teamId: 'team-3', duration: 90, gymId: null, day: null, startTime: null },
     // Team 4
-    { id: 'session-4-1', teamId: 'team-4', duration: 120, gymId: 'gym-3', startTime: 1200 }, // 20:00
+    { id: 'session-4-1', teamId: 'team-4', duration: 120, gymId: 'gym-3', day: 5, startTime: 1200 }, // Fri 20:00
 ];
 
 

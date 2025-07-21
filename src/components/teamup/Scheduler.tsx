@@ -51,46 +51,58 @@ export default function Scheduler() {
             
             setGyms(gymsData);
             setTeams(teamsData);
-            
-            const sessionsDataMap = new Map(sessionsData.map(s => [s.teamId, s]));
-            const newSessionsToCreate: Session[] = [];
-            const existingSessionsToUpdate: Session[] = [];
-            const finalSessions: Session[] = [];
 
+            // Logic to synchronize sessions with teams
+            const finalSessions: Session[] = [];
+            const sessionsToUpdate: Session[] = [];
+            
             for (const team of teamsData) {
                 const teamSessions = sessionsData.filter(s => s.teamId === team.id);
                 const sessionsNeeded = team.sessionsPerWeek;
 
-                // Update existing sessions for the team
-                for (let i = 0; i < Math.min(teamSessions.length, sessionsNeeded); i++) {
+                // Add existing sessions up to the required number
+                for(let i = 0; i < Math.min(teamSessions.length, sessionsNeeded); i++) {
                     const session = teamSessions[i];
-                    session.duration = team.sessionDuration;
-                    existingSessionsToUpdate.push(session);
+                    if (session.duration !== team.sessionDuration) {
+                        session.duration = team.sessionDuration;
+                        sessionsToUpdate.push(session);
+                    }
                     finalSessions.push(session);
                 }
 
-                // Create new sessions if needed
+                // If more sessions are needed, create new ones
                 if (teamSessions.length < sessionsNeeded) {
                     for (let i = teamSessions.length; i < sessionsNeeded; i++) {
-                        const newSession: Session = {
-                            id: `session-${team.id}-${i}-${Date.now()}`, // Temp unique ID
+                        const newSession: Omit<Session, 'id'> = {
                             teamId: team.id,
                             duration: team.sessionDuration,
                             gymId: null,
                             startTime: null,
                         };
-                        newSessionsToCreate.push(newSession);
-                        finalSessions.push(newSession);
+                        // We will add this to the database and get an ID
+                        sessionsToUpdate.push(newSession as Session);
                     }
                 }
             }
+
+            // Identify sessions to delete
+            const sessionsToDelete = sessionsData.filter(s => {
+                const team = teamsData.find(t => t.id === s.teamId);
+                if (!team) return true; // Delete sessions of deleted teams
+                const teamSessions = finalSessions.filter(fs => fs.teamId === team.id);
+                const sessionsNeeded = team.sessionsPerWeek;
+                // if session is one of the extra ones for a team that now needs fewer sessions
+                return teamSessions.indexOf(s) >= sessionsNeeded;
+            });
             
-            // This will create new sessions and delete obsolete ones
-            await updateAllSessions(finalSessions);
-            
-            // We need to fetch again to get the server-generated IDs
-            const allSessions = await getSessions();
-            setSessions(allSessions);
+            if (sessionsToUpdate.length > 0 || sessionsToDelete.length > 0) {
+                 await updateAllSessions(sessionsToUpdate, sessionsToDelete.map(s => s.id));
+                 // Fetch all sessions again to get correct data with new IDs
+                 const allSessions = await getSessions();
+                 setSessions(allSessions);
+            } else {
+                 setSessions(sessionsData);
+            }
 
         } catch (error) {
             console.error("Error fetching data: ", error);

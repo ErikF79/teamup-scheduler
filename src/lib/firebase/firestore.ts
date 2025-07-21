@@ -1,6 +1,6 @@
 
 import { db } from './config';
-import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, DocumentReference, setDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, writeBatch, query, where, setDoc, getDoc } from 'firebase/firestore';
 import type { Gym, Team, Session } from '../teamup';
 
 // --- Gym Functions ---
@@ -60,43 +60,31 @@ export const getSessions = async (): Promise<Session[]> => {
 
 export const updateSession = async (id: string, sessionData: Partial<Omit<Session, 'id'>>) => {
     const sessionDocRef = doc(db, 'sessions', id);
-    const sessionDoc = await getDoc(sessionDocRef);
-
-    if (sessionDoc.exists()) {
-        await updateDoc(sessionDocRef, sessionData);
-    } else {
-        // This case handles newly created sessions that don't exist in DB yet
-        // A full Session object should be passed in sessionData
-        await setDoc(sessionDocRef, sessionData);
-    }
+    await updateDoc(sessionDocRef, sessionData);
 };
 
-export const updateAllSessions = async (sessions: Session[]) => {
-    const batch = writeBatch(db);
-    
-    // Get all existing sessions from DB
-    const existingSessionsSnapshot = await getDocs(sessionsCollection);
-    const existingSessionsMap = new Map<string, DocumentReference>();
-    existingSessionsSnapshot.forEach(doc => {
-        existingSessionsMap.set(doc.id, doc.ref);
-    });
 
-    const sessionsToKeep = new Set<string>();
+export const updateAllSessions = async (sessionsToUpdate: Session[], sessionIdsToDelete: string[]) => {
+    const batch = writeBatch(db);
 
     // Process sessions to be updated or created
-    for (const session of sessions) {
-        sessionsToKeep.add(session.id);
-        const sessionRef = doc(db, 'sessions', session.id);
-        // Use set with merge option to create or update
-        batch.set(sessionRef, session, { merge: true });
+    for (const session of sessionsToUpdate) {
+        if (session.id) {
+            // Update existing session
+            const sessionRef = doc(db, 'sessions', session.id);
+            batch.update(sessionRef, session);
+        } else {
+            // Create new session
+            const newSessionRef = doc(sessionsCollection); // Firestore generates ID
+            batch.set(newSessionRef, session);
+        }
     }
 
     // Process sessions to be deleted
-    existingSessionsMap.forEach((sessionRef, sessionId) => {
-        if (!sessionsToKeep.has(sessionId)) {
-            batch.delete(sessionRef);
-        }
-    });
+    for (const sessionId of sessionIdsToDelete) {
+        const sessionRef = doc(db, 'sessions', sessionId);
+        batch.delete(sessionRef);
+    }
    
     return await batch.commit();
 };

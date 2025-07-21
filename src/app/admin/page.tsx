@@ -20,6 +20,9 @@ export default function AdminPage() {
 
     const [editingGymId, setEditingGymId] = useState<string | null>(null);
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+    
+    const [editingGymName, setEditingGymName] = useState("");
+    const [editingTeamState, setEditingTeamState] = useState<Team | null>(null);
 
     const [newGymName, setNewGymName] = useState("");
     const [newTeamName, setNewTeamName] = useState("");
@@ -48,13 +51,23 @@ export default function AdminPage() {
         fetchData();
     };
 
-    const handleUpdateGym = async (gym: Gym) => {
-        if (!gym.name.trim()) {
+    const startEditingGym = (gym: Gym) => {
+        setEditingGymId(gym.id);
+        setEditingGymName(gym.name);
+    }
+
+    const cancelEditingGym = () => {
+        setEditingGymId(null);
+        setEditingGymName("");
+    }
+
+    const handleUpdateGym = async (gymId: string) => {
+        if (!editingGymName.trim()) {
             toast({ title: "Errore", description: "Il nome della palestra non può essere vuoto.", variant: "destructive" });
             return;
         }
-        await updateGym(gym.id, { name: gym.name });
-        setEditingGymId(null);
+        await updateGym(gymId, { name: editingGymName });
+        cancelEditingGym();
         toast({ title: "Successo", description: "Palestra aggiornata." });
         fetchData();
     };
@@ -72,8 +85,8 @@ export default function AdminPage() {
         }
         await addTeam({ 
             name: newTeamName, 
-            sessionsPerWeek: newSessionsPerWeek, 
-            sessionDuration: newSessionDuration 
+            sessionsPerWeek: newSessionsPerWeek || 0, 
+            sessionDuration: newSessionDuration || 0
         });
         setNewTeamName("");
         setNewSessionsPerWeek(2);
@@ -82,17 +95,27 @@ export default function AdminPage() {
         fetchData();
     };
 
-    const handleUpdateTeam = async (team: Team) => {
-        if (!team.name.trim()) {
+    const startEditingTeam = (team: Team) => {
+        setEditingTeamId(team.id);
+        setEditingTeamState({...team});
+    }
+
+    const cancelEditingTeam = () => {
+        setEditingTeamId(null);
+        setEditingTeamState(null);
+    }
+
+    const handleUpdateTeam = async () => {
+        if (!editingTeamState || !editingTeamState.name.trim()) {
              toast({ title: "Errore", description: "Il nome della squadra non può essere vuoto.", variant: "destructive" });
             return;
         }
-        await updateTeam(team.id, { 
-            name: team.name, 
-            sessionsPerWeek: team.sessionsPerWeek, 
-            sessionDuration: team.sessionDuration 
+        await updateTeam(editingTeamState.id, { 
+            name: editingTeamState.name, 
+            sessionsPerWeek: editingTeamState.sessionsPerWeek || 0, 
+            sessionDuration: editingTeamState.sessionDuration || 0
         });
-        setEditingTeamId(null);
+        cancelEditingTeam();
         toast({ title: "Successo", description: "Squadra aggiornata." });
         fetchData();
     };
@@ -133,8 +156,8 @@ export default function AdminPage() {
                             <li key={gym.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                                 {editingGymId === gym.id ? (
                                     <Input 
-                                        value={gym.name}
-                                        onChange={(e) => setGyms(gyms.map(g => g.id === gym.id ? {...g, name: e.target.value} : g))}
+                                        value={editingGymName}
+                                        onChange={(e) => setEditingGymName(e.target.value)}
                                         className="flex-grow mr-2"
                                     />
                                 ) : (
@@ -143,12 +166,12 @@ export default function AdminPage() {
                                 <div className="flex items-center gap-2">
                                      {editingGymId === gym.id ? (
                                         <>
-                                            <Button size="icon" variant="ghost" onClick={() => handleUpdateGym(gym)}><Save className="h-4 w-4 text-green-500" /></Button>
-                                            <Button size="icon" variant="ghost" onClick={() => { setEditingGymId(null); fetchData(); }}><X className="h-4 w-4 text-red-500" /></Button>
+                                            <Button size="icon" variant="ghost" onClick={() => handleUpdateGym(gym.id)}><Save className="h-4 w-4 text-green-500" /></Button>
+                                            <Button size="icon" variant="ghost" onClick={cancelEditingGym}><X className="h-4 w-4 text-red-500" /></Button>
                                         </>
                                      ) : (
                                         <>
-                                            <Button size="icon" variant="ghost" onClick={() => setEditingGymId(gym.id)}><Edit className="h-4 w-4 text-primary" /></Button>
+                                            <Button size="icon" variant="ghost" onClick={() => startEditingGym(gym)}><Edit className="h-4 w-4 text-primary" /></Button>
                                             <Button size="icon" variant="ghost" onClick={() => handleDeleteGym(gym.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                         </>
                                      )}
@@ -188,8 +211,8 @@ export default function AdminPage() {
                                 <div className="flex items-center justify-between">
                                     {editingTeamId === team.id ? (
                                         <Input 
-                                            value={team.name}
-                                            onChange={(e) => setTeams(teams.map(t => t.id === team.id ? {...t, name: e.target.value} : t))}
+                                            value={editingTeamState?.name || ''}
+                                            onChange={(e) => setEditingTeamState(s => s ? {...s, name: e.target.value} : null)}
                                             className="flex-grow mr-2"
                                         />
                                     ) : (
@@ -198,26 +221,26 @@ export default function AdminPage() {
                                     <div className="flex items-center gap-2">
                                         {editingTeamId === team.id ? (
                                              <>
-                                                <Button size="icon" variant="ghost" onClick={() => handleUpdateTeam(team)}><Save className="h-4 w-4 text-green-500" /></Button>
-                                                <Button size="icon" variant="ghost" onClick={() => { setEditingTeamId(null); fetchData(); }}><X className="h-4 w-4 text-red-500" /></Button>
+                                                <Button size="icon" variant="ghost" onClick={handleUpdateTeam}><Save className="h-4 w-4 text-green-500" /></Button>
+                                                <Button size="icon" variant="ghost" onClick={cancelEditingTeam}><X className="h-4 w-4 text-red-500" /></Button>
                                             </>
                                         ) : (
                                             <>
-                                                <Button size="icon" variant="ghost" onClick={() => setEditingTeamId(team.id)}><Edit className="h-4 w-4 text-primary" /></Button>
+                                                <Button size="icon" variant="ghost" onClick={() => startEditingTeam(team)}><Edit className="h-4 w-4 text-primary" /></Button>
                                                 <Button size="icon" variant="ghost" onClick={() => handleDeleteTeam(team.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                             </>
                                         )}
                                     </div>
                                 </div>
-                                {editingTeamId === team.id && (
+                                {editingTeamId === team.id && editingTeamState && (
                                      <div className="grid grid-cols-2 gap-4 mt-2">
                                         <div>
                                             <Label htmlFor={`sessions-${team.id}`}>Allenamenti/sett.</Label>
-                                            <Input id={`sessions-${team.id}`} type="number" value={team.sessionsPerWeek} onChange={(e) => setTeams(teams.map(t => t.id === team.id ? {...t, sessionsPerWeek: parseInt(e.target.value)} : t))} />
+                                            <Input id={`sessions-${team.id}`} type="number" value={editingTeamState.sessionsPerWeek} onChange={(e) => setEditingTeamState(s => s ? {...s, sessionsPerWeek: parseInt(e.target.value) || 0} : null)} />
                                         </div>
                                         <div>
                                             <Label htmlFor={`duration-${team.id}`}>Durata (min)</Label>
-                                            <Input id={`duration-${team.id}`} type="number" value={team.sessionDuration} onChange={(e) => setTeams(teams.map(t => t.id === team.id ? {...t, sessionDuration: parseInt(e.target.value)} : t))} />
+                                            <Input id={`duration-${team.id}`} type="number" value={editingTeamState.sessionDuration} onChange={(e) => setEditingTeamState(s => s ? {...s, sessionDuration: parseInt(e.target.value) || 0} : null)} />
                                         </div>
                                     </div>
                                 )}

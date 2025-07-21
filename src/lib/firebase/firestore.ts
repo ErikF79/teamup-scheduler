@@ -83,9 +83,8 @@ const syncTeamSessions = async (teamId: string, teamData: Partial<Omit<Team, 'id
 }
 
 export const addTeam = async (teamData: Omit<Team, 'id'>) => {
+    const teamRef = await addDoc(teamsCollection, teamData);
     const batch = writeBatch(db);
-    const teamRef = doc(teamsCollection);
-    batch.set(teamRef, teamData);
     await syncTeamSessions(teamRef.id, teamData, batch);
     return await batch.commit();
 };

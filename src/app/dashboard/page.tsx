@@ -51,7 +51,7 @@ export default function DashboardPage() {
         const numSessions = data.sessions.length;
 
         const totalHoursAvailablePerWeek = data.gyms.reduce((total, gym) => {
-            const gymHours = gym.availability.reduce((sum, day) => {
+            const gymHours = (gym.availability || []).reduce((sum, day) => {
                 const dayHours = (day.slots || []).reduce((daySum, slot) => daySum + ((slot.end - slot.start) / 60), 0);
                 return sum + dayHours;
             }, 0);
@@ -82,7 +82,7 @@ export default function DashboardPage() {
         });
         
         const gymDetails = data.gyms.map(gym => {
-            const weeklyHours = gym.availability.reduce((sum, day) => {
+            const weeklyHours = (gym.availability || []).reduce((sum, day) => {
                 const dayHours = (day.slots || []).reduce((daySum, slot) => daySum + ((slot.end - slot.start) / 60), 0);
                 return sum + dayHours;
             }, 0);

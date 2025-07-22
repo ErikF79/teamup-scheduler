@@ -285,7 +285,7 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
         const intValue = parseInt(value, 10);
         const newAvailability = formData.availability.map(day => {
             if (day.key === dayKey) {
-                const newSlots = day.slots.map((slot, i) => 
+                const newSlots = day.slots.map((slot, i) =>
                     i === slotIndex ? { ...slot, [field]: intValue } : slot
                 );
                 return { ...day, slots: newSlots };
@@ -325,10 +325,9 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
     const timeOptions = useMemo(() => {
         const options = [];
         options.push(<option key="closed" value={0}>Chiuso</option>);
-        for (let h = 0; h < 24; h++) {
+         for (let h = 0; h < 24; h++) {
              for (let m = 0; m < 60; m += 15) {
                 const totalMinutes = h * 60 + m;
-                // Skip the 00:00 case as it's handled by "Chiuso"
                 if (totalMinutes === 0) continue; 
                 const timeString = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                 options.push(<option key={totalMinutes} value={totalMinutes}>{timeString}</option>);
@@ -352,7 +351,6 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
                 }
              }
         }
-        // Add 24:00 option
         options.push(<option key={24*60} value={24*60}>24:00</option>)
         return options;
     }

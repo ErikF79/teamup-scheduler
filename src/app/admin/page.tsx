@@ -298,7 +298,7 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
     const handleAddSlot = (dayKey: number) => {
         const newAvailability = formData.availability.map(day => {
             if (day.key === dayKey) {
-                const newSlots = [...day.slots, {start: 9*60, end: 10*60}];
+                const newSlots = [...(day.slots || []), {start: 9*60, end: 10*60}];
                 return { ...day, slots: newSlots };
             }
             return day;
@@ -309,7 +309,7 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
     const handleRemoveSlot = (dayKey: number, slotIndex: number) => {
         const newAvailability = formData.availability.map(day => {
             if (day.key === dayKey) {
-                 const newSlots = day.slots.filter((_, i) => i !== slotIndex);
+                 const newSlots = (day.slots || []).filter((_, i) => i !== slotIndex);
                  return { ...day, slots: newSlots };
             }
             return day;
@@ -324,9 +324,11 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
     
     const timeOptions = useMemo(() => {
         const options = [];
+        options.push(<option key={0} value={0}>Chiuso</option>);
         for (let h = 0; h < 24; h++) {
              for (let m = 0; m < 60; m += 15) {
                 const totalMinutes = h * 60 + m;
+                if (totalMinutes === 0 && h > 0) continue; // Skip 00:00 if it's not the "Chiuso" option
                 const timeString = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                 options.push(<option key={totalMinutes} value={totalMinutes}>{timeString}</option>);
              }
@@ -336,6 +338,10 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
 
     const endTimeOptions = (startMinutes: number) => {
         const options = [];
+        if (startMinutes === 0) {
+             options.push(<option key={0} value={0}>00:00</option>);
+             return options;
+        }
          for (let h = 0; h < 24; h++) {
              for (let m = 0; m < 60; m += 15) {
                 const totalMinutes = h * 60 + m;
@@ -368,8 +374,8 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
                                 <Plus className="h-4 w-4"/>
                              </Button>
                         </div>
-                        {day.slots.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Chiuso</p>}
-                        {day.slots.map((slot, index) => (
+                        {(!day.slots || day.slots.length === 0) && <p className="text-xs text-muted-foreground text-center py-2">Chiuso</p>}
+                        {(day.slots || []).map((slot, index) => (
                              <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
                                 <select value={slot.start} onChange={(e) => handleSlotChange(day.key, index, 'start', e.target.value)} className="w-full h-8 px-2 border rounded-md text-xs bg-card">
                                     {timeOptions}

@@ -460,7 +460,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     const slots = dayAvailability?.slots || [];
     
     const totalMinutes = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
-    const totalHeight = totalMinutes / 15 * 6; // Total height based on 15 min intervals (4 per hour * 6px height per 15min)
+    const totalHeight = totalMinutes / 15 * 24; // Total height in pixels
 
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -476,8 +476,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         
         if (contentRect.height <= 0) return;
 
-        const minutesFromTop = (dropY / contentRect.height) * totalMinutes;
-        const snappedMinutes = (Math.round(minutesFromTop / 15)) * 15;
+        const minutesFromCellTop = (dropY / contentRect.height) * totalMinutes;
+        const snappedMinutes = Math.round(minutesFromCellTop / 15) * 15;
         const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
 
         moveSession(sessionId, gym.id, dayKey, newStartTime);

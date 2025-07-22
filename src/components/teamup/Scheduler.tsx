@@ -80,7 +80,7 @@ export default function Scheduler() {
              const sessionEndMinutes = newStartTime + updatedSession.duration;
 
              // Check if session falls within any available slot
-             const isWithinAvailableSlot = dayConfig.slots.some(slot => 
+             const isWithinAvailableSlot = Array.isArray(dayConfig.slots) && dayConfig.slots.some(slot => 
                 newStartTime >= slot.start && sessionEndMinutes <= slot.end
              );
 
@@ -299,11 +299,13 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         e.preventDefault();
         const sessionId = e.dataTransfer.getData('sessionId');
         const target = e.currentTarget;
+        const parentScroll = target.closest('.flex-grow.h-full.pr-4'); // Find the scrollable container
         target.classList.remove('bg-accent/10');
         const contentRect = target.getBoundingClientRect();
 
-        const dropY = e.clientY - contentRect.top;
-        const totalHeight = target.offsetHeight;
+        const scrollTop = parentScroll ? parentScroll.scrollTop : 0;
+        const dropY = e.clientY - contentRect.top + scrollTop;
+        const totalHeight = target.scrollHeight;
 
         const minutesFromTop = (dropY / totalHeight) * TOTAL_MASTER_MINUTES;
         const snappedMinutes = Math.round(minutesFromTop / 15) * 15;
@@ -401,10 +403,3 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         </Card>
     );
 };
-
-    
-
-    
-
-    
-

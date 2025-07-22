@@ -34,7 +34,7 @@ interface SchedulerContextType {
   gyms: Gym[];
   teams: Team[];
   teamColors: { [key: string]: string };
-  moveSession: (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null) => void;
+  moveSession: (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null) => boolean;
   getSessionsByGymAndDay: (gymId: string, day: number) => Session[];
   getUnassignedSessions: () => Session[];
   setEditingSession: (session: Session | null) => void;
@@ -81,9 +81,9 @@ export default function Scheduler() {
   };
 
 
-  const moveSession = (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null) => {
+  const moveSession = (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null): boolean => {
     let sessionToMove = appData.sessions.find(s => s.id === sessionId);
-    if (!sessionToMove) return;
+    if (!sessionToMove) return false;
 
     const updatedSession = { ...sessionToMove, gymId: newGymId, day: newDay, startTime: newStartTime };
     
@@ -94,7 +94,6 @@ export default function Scheduler() {
         if (gym && dayConfig) {
              const sessionEndMinutes = newStartTime + updatedSession.duration;
 
-             // Check if session falls within any available slot
              const isWithinAvailableSlot = Array.isArray(dayConfig.slots) && dayConfig.slots.some(slot => 
                 newStartTime >= slot.start && sessionEndMinutes <= slot.end
              );
@@ -109,18 +108,19 @@ export default function Scheduler() {
              }
         }
 
-        const collision = appData.sessions.some(s => 
-            s.id !== sessionId &&
-            s.gymId === newGymId &&
-            s.day === newDay &&
-            s.startTime !== null &&
-            newStartTime !== null &&
-            s.duration > 0 &&
-            (
-                (newStartTime >= s.startTime && newStartTime < s.startTime + s.duration) ||
-                (s.startTime >= newStartTime && s.startTime < newStartTime + updatedSession.duration)
-            )
-        );
+        const collision = appData.sessions.some(s => {
+            if (s.id === sessionId || s.gymId !== newGymId || s.day !== newDay || s.startTime === null) {
+                return false;
+            }
+            const s_start = s.startTime;
+            const s_end = s.startTime + s.duration;
+            const new_start = newStartTime;
+            const new_end = newStartTime + updatedSession.duration;
+
+            // Overlap happens if one session starts before the other ends
+            // and ends after the other starts.
+            return new_start < s_end && new_end > s_start;
+        });
 
         if (collision) {
             toast({
@@ -592,3 +592,6 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
 
     
 
+
+
+    

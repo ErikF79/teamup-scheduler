@@ -514,7 +514,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
         >
-                {/* Background masks for unavailable times */}
+            {/* Background masks for unavailable times */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 {/* Full day mask */}
                 <div className="absolute inset-0 bg-neutral-200/50 dark:bg-neutral-800/50"></div>
@@ -609,3 +609,4 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
 
 
     
+

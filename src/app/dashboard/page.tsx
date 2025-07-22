@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { initialData as mockData, Gym, Team, Session } from '@/lib/teamup';
 import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 type AppData = {
     gyms: Gym[];
@@ -17,7 +18,8 @@ type AppData = {
 };
 
 function getWeeksBetween(d1: Date, d2: Date) {
-    return Math.round((d2.getTime() - d1.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    if (d1 > d2) return 0;
+    return Math.ceil((d2.getTime() - d1.getTime()) / (7 * 24 * 60 * 60 * 1000));
 }
 
 export default function DashboardPage() {
@@ -90,6 +92,13 @@ export default function DashboardPage() {
             }
         });
 
+        const weeklyChartData = [
+            { name: 'Settimanale', 'Ore Disponibili': totalHoursAvailablePerWeek, 'Ore Richieste': totalHoursRequiredPerWeek }
+        ];
+        const seasonalChartData = [
+            { name: 'Stagionale', 'Ore Disponibili': totalHoursAvailablePerSeason, 'Ore Richieste': totalHoursRequiredPerSeason }
+        ];
+
         return {
             numGyms,
             numTeams,
@@ -100,6 +109,8 @@ export default function DashboardPage() {
             totalHoursRequiredPerSeason,
             teamDetails,
             gymDetails,
+            weeklyChartData,
+            seasonalChartData,
         };
     }, [data]);
 
@@ -150,42 +161,36 @@ export default function DashboardPage() {
                 <Card className="mb-8">
                     <CardHeader>
                         <CardTitle>Utilizzo Risorse</CardTitle>
-                        <CardDescription>Confronto tra ore disponibili e ore richieste.</CardDescription>
+                        <CardDescription>Confronto grafico tra ore disponibili e ore richieste.</CardDescription>
                     </CardHeader>
-                    <CardContent className="grid gap-6 md:grid-cols-2">
-                        <div className="flex flex-col space-y-2">
-                            <h4 className="font-semibold">Riepilogo Settimanale</h4>
-                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Ore Disponibili</span>
-                                <span className="font-bold">{stats.totalHoursAvailablePerWeek.toFixed(2)} h</span>
-                             </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Ore Richieste</span>
-                                <span className="font-bold">{stats.totalHoursRequiredPerWeek.toFixed(2)} h</span>
-                             </div>
-                             <div className="flex justify-between pt-2 border-t">
-                                <span className="text-primary font-semibold">Bilancio</span>
-                                <span className={`font-bold ${stats.totalHoursAvailablePerWeek >= stats.totalHoursRequiredPerWeek ? 'text-green-600' : 'text-red-600'}`}>
-                                    {(stats.totalHoursAvailablePerWeek - stats.totalHoursRequiredPerWeek).toFixed(2)} h
-                                </span>
-                             </div>
+                    <CardContent className="grid gap-8 md:grid-cols-2">
+                        <div className="flex flex-col">
+                             <h4 className="font-semibold text-center mb-4">Riepilogo Settimanale (Ore)</h4>
+                             <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={stats.weeklyChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="Ore Disponibili" fill="hsl(var(--primary))" />
+                                    <Bar dataKey="Ore Richieste" fill="hsl(var(--accent))" />
+                                </BarChart>
+                             </ResponsiveContainer>
                         </div>
-                         <div className="flex flex-col space-y-2">
-                            <h4 className="font-semibold">Riepilogo Stagionale</h4>
-                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Ore Disponibili</span>
-                                <span className="font-bold">{stats.totalHoursAvailablePerSeason.toFixed(2)} h</span>
-                             </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Ore Richieste</span>
-                                <span className="font-bold">{stats.totalHoursRequiredPerSeason.toFixed(2)} h</span>
-                             </div>
-                              <div className="flex justify-between pt-2 border-t">
-                                <span className="text-primary font-semibold">Bilancio</span>
-                                <span className={`font-bold ${stats.totalHoursAvailablePerSeason >= stats.totalHoursRequiredPerSeason ? 'text-green-600' : 'text-red-600'}`}>
-                                    {(stats.totalHoursAvailablePerSeason - stats.totalHoursRequiredPerSeason).toFixed(2)} h
-                                </span>
-                             </div>
+                         <div className="flex flex-col">
+                            <h4 className="font-semibold text-center mb-4">Riepilogo Stagionale (Ore)</h4>
+                             <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={stats.seasonalChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="Ore Disponibili" fill="hsl(var(--primary))" />
+                                    <Bar dataKey="Ore Richieste" fill="hsl(var(--accent))" />
+                                </BarChart>
+                             </ResponsiveContainer>
                         </div>
                     </CardContent>
                 </Card>

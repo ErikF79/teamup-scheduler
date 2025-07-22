@@ -1,11 +1,15 @@
 
 // --- TYPES ---
 
+export interface TimeSlot {
+  start: number; // minutes from midnight
+  end: number;   // minutes from midnight
+}
+
 export interface DayAvailability {
   key: number; // 1 for Monday, etc.
   name: string;
-  start: number; // minutes from midnight
-  end: number; // minutes from midnight
+  slots: TimeSlot[];
 }
 
 export interface Gym {
@@ -42,13 +46,13 @@ const teamColors: { [key: string]: string } = {
 };
 
 const defaultAvailability: DayAvailability[] = [
-    { key: 1, name: 'Lunedì', start: 17 * 60, end: 23 * 60 },
-    { key: 2, name: 'Martedì', start: 17 * 60, end: 23 * 60 },
-    { key: 3, name: 'Mercoledì', start: 17 * 60, end: 23 * 60 },
-    { key: 4, name: 'Giovedì', start: 17 * 60, end: 23 * 60 },
-    { key: 5, name: 'Venerdì', start: 17 * 60, end: 23 * 60 },
-    { key: 6, name: 'Sabato', start: 14 * 60, end: 20 * 60 },
-    { key: 7, name: 'Domenica', start: 9 * 60, end: 20 * 60 },
+    { key: 1, name: 'Lunedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+    { key: 2, name: 'Martedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+    { key: 3, name: 'Mercoledì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+    { key: 4, name: 'Giovedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+    { key: 5, name: 'Venerdì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+    { key: 6, name: 'Sabato', slots: [{ start: 14 * 60, end: 20 * 60 }] },
+    { key: 7, name: 'Domenica', slots: [{ start: 9 * 60, end: 20 * 60 }] },
 ];
 
 const gyms: Gym[] = [

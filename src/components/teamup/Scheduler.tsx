@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, createContext, useContext, useEffect, useMemo } from 'react';
@@ -76,29 +77,21 @@ export default function Scheduler() {
         const dayConfig = gym?.availability.find(d => d.key === newDay);
 
         if (gym && dayConfig) {
-             const slotStartMinutes = dayConfig.start;
-             const slotEndMinutes = dayConfig.end;
-
-             // Check for "Closed" day
-             if (dayConfig.start === 0 && dayConfig.end === 0) {
-                 toast({
-                    title: "Palestra Chiusa!",
-                    description: "La palestra non è disponibile in questo giorno.",
-                    variant: "destructive"
-                });
-                return;
-             }
-             
              const sessionEndMinutes = newStartTime + updatedSession.duration;
 
-            if (newStartTime < slotStartMinutes || sessionEndMinutes > slotEndMinutes) {
+             // Check if session falls within any available slot
+             const isWithinAvailableSlot = dayConfig.slots.some(slot => 
+                newStartTime >= slot.start && sessionEndMinutes <= slot.end
+             );
+
+             if (!isWithinAvailableSlot) {
                  toast({
                     title: "Orario non valido!",
                     description: "La sessione è fuori dagli orari disponibili per la palestra in questo giorno.",
                     variant: "destructive"
                 });
                 return;
-            }
+             }
         }
 
         const collision = appData.sessions.some(s => 
@@ -357,7 +350,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                     </div>
 
                     {/* Schedule Cells */}
-                    {gym.availability.map(({key: dayKey, start, end}, dayIndex) => (
+                    {gym.availability.map(({key: dayKey, slots}, dayIndex) => (
                         <div
                             key={dayIndex}
                             className="row-start-2 col-start-auto relative border-b border-l transition-colors"
@@ -366,15 +359,20 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                             onDragLeave={handleDragLeave}
                         >
                              {/* Background masks for unavailable times */}
-                             <div className="absolute inset-0 z-0 pointer-events-none">
+                            <div className="absolute inset-0 z-0 pointer-events-none">
                                 {timeSlots.map((_, hourIndex) => {
-                                    const currentHour = MASTER_START_HOUR + hourIndex;
-                                    const isAvailable = (currentHour * 60) >= start && (currentHour * 60) < end;
-                                    const isClosed = start === 0 && end === 0;
+                                    const currentHourStart = (MASTER_START_HOUR + hourIndex) * 60;
+                                    const currentHourEnd = currentHourStart + 60;
+                                    
+                                    // Check if this hour block overlaps with any available slot
+                                    const isAvailable = slots.some(slot => 
+                                        currentHourStart < slot.end && currentHourEnd > slot.start
+                                    );
+
                                     return (
                                         <div 
                                             key={hourIndex}
-                                            className={`h-24 border-b ${(!isAvailable || isClosed) ? 'bg-neutral-300' : ''}`}
+                                            className={`h-24 border-b ${!isAvailable ? 'bg-neutral-300' : ''}`}
                                         ></div>
                                     )
                                 })}

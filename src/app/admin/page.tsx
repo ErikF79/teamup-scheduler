@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
@@ -7,9 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard } from "lucide-react";
+import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard, Plus, Trash } from "lucide-react";
 import Link from "next/link";
-import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
+import { initialData as mockData, Session, Gym, Team, DayAvailability, TimeSlot } from '@/lib/teamup';
 import {
   Tooltip,
   TooltipContent,
@@ -66,13 +67,13 @@ export default function AdminPage() {
             id: `gym-${Date.now()}`,
             name: "Nuova Palestra",
             availability: [
-                { key: 1, name: 'Lunedì', start: 17 * 60, end: 23 * 60 },
-                { key: 2, name: 'Martedì', start: 17 * 60, end: 23 * 60 },
-                { key: 3, name: 'Mercoledì', start: 17 * 60, end: 23 * 60 },
-                { key: 4, name: 'Giovedì', start: 17 * 60, end: 23 * 60 },
-                { key: 5, name: 'Venerdì', start: 17 * 60, end: 23 * 60 },
-                { key: 6, name: 'Sabato', start: 14 * 60, end: 20 * 60 },
-                { key: 7, name: 'Domenica', start: 9 * 60, end: 20 * 60 },
+                { key: 1, name: 'Lunedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+                { key: 2, name: 'Martedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+                { key: 3, name: 'Mercoledì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+                { key: 4, name: 'Giovedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+                { key: 5, name: 'Venerdì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
+                { key: 6, name: 'Sabato', slots: [{ start: 14 * 60, end: 20 * 60 }] },
+                { key: 7, name: 'Domenica', slots: [{ start: 9 * 60, end: 20 * 60 }] },
             ]
         };
         updateData({ gyms: [...data.gyms, newGym] });
@@ -280,29 +281,49 @@ interface GymEditFormProps {
 function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
     const [formData, setFormData] = useState(gym);
 
-    const handleDayChange = (dayKey: number, field: 'start' | 'end', value: string) => {
+    const handleSlotChange = (dayKey: number, slotIndex: number, field: 'start' | 'end', value: string) => {
         const intValue = parseInt(value, 10);
-
-        if(field === 'start' && intValue === 0) { // If setting "Closed"
-             const newAvailability = formData.availability.map(day =>
-                day.key === dayKey ? { ...day, start: 0, end: 0 } : day
-            );
-            setFormData({ ...formData, availability: newAvailability });
-            return;
-        }
-
-        const newAvailability = formData.availability.map(day =>
-            day.key === dayKey ? { ...day, [field]: intValue } : day
-        );
+        const newAvailability = formData.availability.map(day => {
+            if (day.key === dayKey) {
+                const newSlots = day.slots.map((slot, i) => 
+                    i === slotIndex ? { ...slot, [field]: intValue } : slot
+                );
+                return { ...day, slots: newSlots };
+            }
+            return day;
+        });
         setFormData({ ...formData, availability: newAvailability });
     };
+    
+    const handleAddSlot = (dayKey: number) => {
+        const newAvailability = formData.availability.map(day => {
+            if (day.key === dayKey) {
+                const newSlots = [...day.slots, {start: 9*60, end: 10*60}];
+                return { ...day, slots: newSlots };
+            }
+            return day;
+        });
+        setFormData({ ...formData, availability: newAvailability });
+    };
+
+    const handleRemoveSlot = (dayKey: number, slotIndex: number) => {
+        const newAvailability = formData.availability.map(day => {
+            if (day.key === dayKey) {
+                 const newSlots = day.slots.filter((_, i) => i !== slotIndex);
+                 return { ...day, slots: newSlots };
+            }
+            return day;
+        });
+        setFormData({ ...formData, availability: newAvailability });
+    };
+
 
     const handleSave = () => {
         onSave(formData);
     };
     
     const timeOptions = useMemo(() => {
-        const options = [<option key="closed" value={0}>Chiuso</option>];
+        const options = [];
         for (let h = 0; h < 24; h++) {
              for (let m = 0; m < 60; m += 15) {
                 const totalMinutes = h * 60 + m;
@@ -318,7 +339,7 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
          for (let h = 0; h < 24; h++) {
              for (let m = 0; m < 60; m += 15) {
                 const totalMinutes = h * 60 + m;
-                if (totalMinutes >= startMinutes) {
+                if (totalMinutes > startMinutes) {
                     const timeString = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                     options.push(<option key={totalMinutes} value={totalMinutes}>{timeString}</option>);
                 }
@@ -340,16 +361,27 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
             <div className="space-y-3">
                 <h4 className="font-semibold text-sm">Orari di Disponibilità</h4>
                 {formData.availability.map(day => (
-                    <div key={day.key} className="grid grid-cols-3 items-center gap-2">
-                        <Label className="text-xs col-span-1">{day.name}</Label>
-                        <div className="col-span-2 grid grid-cols-2 gap-2">
-                             <select value={day.start} onChange={(e) => handleDayChange(day.key, 'start', e.target.value)} className="w-full h-8 px-2 border rounded-md text-xs bg-card">
-                                {timeOptions}
-                            </select>
-                             <select value={day.end} onChange={(e) => handleDayChange(day.key, 'end', e.target.value)} className="w-full h-8 px-2 border rounded-md text-xs bg-card" disabled={day.start === 0}>
-                                {day.start === 0 ? <option value={0}>Chiuso</option> : endTimeOptions(day.start)}
-                            </select>
+                    <div key={day.key} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                             <Label className="text-xs font-bold">{day.name}</Label>
+                             <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleAddSlot(day.key)}>
+                                <Plus className="h-4 w-4"/>
+                             </Button>
                         </div>
+                        {day.slots.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Chiuso</p>}
+                        {day.slots.map((slot, index) => (
+                             <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
+                                <select value={slot.start} onChange={(e) => handleSlotChange(day.key, index, 'start', e.target.value)} className="w-full h-8 px-2 border rounded-md text-xs bg-card">
+                                    {timeOptions}
+                                </select>
+                                <select value={slot.end} onChange={(e) => handleSlotChange(day.key, index, 'end', e.target.value)} className="w-full h-8 px-2 border rounded-md text-xs bg-card">
+                                    {endTimeOptions(slot.start)}
+                                </select>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => handleRemoveSlot(day.key, index)}>
+                                    <Trash className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                        ))}
                     </div>
                 ))}
             </div>

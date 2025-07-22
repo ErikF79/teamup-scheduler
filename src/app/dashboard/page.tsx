@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -48,7 +49,10 @@ export default function DashboardPage() {
         const numSessions = data.sessions.length;
 
         const totalHoursAvailablePerWeek = data.gyms.reduce((total, gym) => {
-            const gymHours = gym.availability.reduce((sum, day) => sum + ((day.end - day.start) / 60), 0);
+            const gymHours = gym.availability.reduce((sum, day) => {
+                const dayHours = day.slots.reduce((daySum, slot) => daySum + ((slot.end - slot.start) / 60), 0);
+                return sum + dayHours;
+            }, 0);
             return total + gymHours;
         }, 0);
 
@@ -58,7 +62,7 @@ export default function DashboardPage() {
         }, 0);
         
         // Use the first team's season dates as representative for the calculation
-        const seasonWeeks = data.teams.length > 0
+        const seasonWeeks = data.teams.length > 0 && data.teams[0].seasonStartDate && data.teams[0].seasonEndDate
             ? getWeeksBetween(new Date(data.teams[0].seasonStartDate), new Date(data.teams[0].seasonEndDate))
             : 0;
 
@@ -76,7 +80,10 @@ export default function DashboardPage() {
         });
         
         const gymDetails = data.gyms.map(gym => {
-            const weeklyHours = gym.availability.reduce((sum, day) => sum + ((day.end - day.start) / 60), 0);
+            const weeklyHours = gym.availability.reduce((sum, day) => {
+                const dayHours = day.slots.reduce((daySum, slot) => daySum + ((slot.end - slot.start) / 60), 0);
+                return sum + dayHours;
+            }, 0);
             return {
                 ...gym,
                 weeklyHours

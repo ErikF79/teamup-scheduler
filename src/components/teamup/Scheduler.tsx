@@ -5,11 +5,14 @@
 import React, { useState, createContext, useContext, useEffect, useMemo, useCallback } from 'react';
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, GripVertical, Users, CalendarDays, Eye } from 'lucide-react';
+import { Building2, GripVertical, Users, CalendarDays, Eye, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 
 // --- CONSTANTS ---
@@ -35,6 +38,7 @@ interface SchedulerContextType {
   moveSession: (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null) => void;
   getSessionsByGymAndDay: (gymId: string, day: number) => Session[];
   getUnassignedSessions: () => Session[];
+  setEditingSession: (session: Session | null) => void;
 }
 
 const SchedulerContext = createContext<SchedulerContextType | null>(null);
@@ -51,6 +55,7 @@ const useScheduler = () => {
 export default function Scheduler() {
   const { toast } = useToast();
   const [appData, setAppData] = useState(mockData);
+  const [editingSession, setEditingSession] = useState<Session | null>(null);
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -101,7 +106,7 @@ export default function Scheduler() {
                     description: "La sessione è fuori dagli orari disponibili per la palestra in questo giorno.",
                     variant: "destructive"
                 });
-                return;
+                return false;
              }
         }
 
@@ -124,7 +129,7 @@ export default function Scheduler() {
                 description: "Impossibile spostare la sessione in questo slot orario.",
                 variant: "destructive"
             });
-            return;
+            return false;
         }
     }
 
@@ -135,6 +140,7 @@ export default function Scheduler() {
         title: "Sessione Spostata",
         description: "La modifica è salvata in memoria per questa sessione.",
     });
+    return true;
   };
 
   const getSessionsByGymAndDay = (gymId: string, day: number) => {
@@ -146,7 +152,7 @@ export default function Scheduler() {
   }
   
   return (
-    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions }}>
+    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession }}>
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
              <div className="flex-grow flex flex-col h-full overflow-hidden">
@@ -182,6 +188,7 @@ export default function Scheduler() {
                 </Tabs>
             </div>
         </div>
+        {editingSession && <EditSessionDialog session={editingSession} />}
     </SchedulerContext.Provider>
   );
 };
@@ -259,12 +266,18 @@ function DayViewScheduler() {
 
 
 // --- UTILITY FUNCTIONS ---
-function formatTime(minutesFromDayStart: number) {
+function formatTime(minutesFromDayStart: number | null) {
+    if (minutesFromDayStart === null) return '';
     const hours = Math.floor(minutesFromDayStart / 60);
     const minutes = minutesFromDayStart % 60;
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
 
+function timeToMinutes(timeString: string) {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return null;
+    return hours * 60 + minutes;
+}
 
 // --- SESSION CARD ---
 interface SessionCardProps {
@@ -272,7 +285,7 @@ interface SessionCardProps {
   isDraggable?: boolean;
 }
 const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
-    const { teams, teamColors } = useScheduler();
+    const { teams, teamColors, setEditingSession } = useScheduler();
     const team = teams.find(t => t.id === session.teamId);
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
@@ -289,18 +302,26 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
         e.currentTarget.style.opacity = '1';
     };
 
+    const handleClick = () => {
+        if (session.startTime !== null) { // Only placed sessions are editable this way
+            setEditingSession(session);
+        }
+    }
+
     if (!team) return null;
     
     const isPlaced = session.startTime !== null;
-    const startTimeStr = isPlaced ? formatTime(session.startTime!) : '';
+    const startTimeStr = formatTime(session.startTime);
     const endTimeStr = isPlaced ? formatTime(session.startTime! + session.duration) : '';
+    const cursorClass = isPlaced ? 'cursor-pointer hover:ring-2 hover:ring-primary' : 'cursor-grab active:cursor-grabbing';
 
     return (
         <div
             draggable={isDraggable}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            className={`p-2 rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            onClick={handleClick}
+            className={`p-2 rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card ${isDraggable ? cursorClass : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
@@ -308,7 +329,10 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             <div className="flex flex-col w-full">
                 <p className="font-bold text-sm text-card-foreground">{team?.name}</p>
                 {isPlaced && (
-                     <p className="text-xs font-semibold text-primary">{startTimeStr} - {endTimeStr}</p>
+                     <p className="text-xs font-semibold text-primary flex items-center gap-1">
+                        <Clock className="h-3 w-3"/>
+                        {startTimeStr} - {endTimeStr}
+                    </p>
                 )}
                 <p className="text-xs text-muted-foreground">{session.duration} min</p>
             </div>
@@ -500,3 +524,55 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         </div>
     );
 };
+
+// --- EDIT SESSION DIALOG ---
+interface EditSessionDialogProps {
+    session: Session;
+}
+function EditSessionDialog({ session }: EditSessionDialogProps) {
+    const { teams, setEditingSession, moveSession } = useScheduler();
+    const [newTime, setNewTime] = useState(formatTime(session.startTime));
+    const team = teams.find(t => t.id === session.teamId);
+
+    const handleSave = () => {
+        const newStartTime = timeToMinutes(newTime);
+        if (newStartTime !== null && session.gymId && session.day) {
+           const success = moveSession(session.id, session.gymId, session.day, newStartTime);
+           if (success) {
+               setEditingSession(null);
+           }
+        }
+    }
+
+    if (!team) return null;
+
+    return (
+         <Dialog open={true} onOpenChange={() => setEditingSession(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Modifica Orario Sessione</DialogTitle>
+                    <DialogDescription>
+                        Stai modificando la sessione per <strong>{team.name}</strong>.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="start-time" className="text-right">Nuovo Orario</Label>
+                        <Input
+                            id="start-time"
+                            type="time"
+                            step="900" // 15 minuti
+                            value={newTime}
+                            onChange={(e) => setNewTime(e.target.value)}
+                            className="col-span-3"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setEditingSession(null)}>Annulla</Button>
+                    <Button onClick={handleSave}>Salva Modifiche</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}

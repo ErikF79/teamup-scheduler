@@ -300,22 +300,22 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         const sessionId = e.dataTransfer.getData('sessionId');
         const target = e.currentTarget;
         target.classList.remove('bg-accent/10');
-        const contentRect = target.getBoundingClientRect();
+        
+        if (!sessionId) return;
 
+        const contentRect = target.getBoundingClientRect();
         const dropY = e.clientY - contentRect.top;
         const totalHeight = contentRect.height;
         
         if (totalHeight <= 0) return;
 
         const minutesFromTop = (dropY / totalHeight) * TOTAL_MASTER_MINUTES;
-        const snappedMinutes = Math.round(minutesFromTop / 15) * 15;
+        const snappedMinutes = Math.floor(minutesFromTop / 15) * 15;
         const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
         
         const dayKey = dayIndex + 1;
 
-        if (sessionId) {
-            moveSession(sessionId, gym.id, dayKey, newStartTime);
-        }
+        moveSession(sessionId, gym.id, dayKey, newStartTime);
     };
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -374,7 +374,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                                     return (
                                         <div 
                                             key={hourIndex}
-                                            className={`h-24 border-b ${!isAvailable ? 'bg-neutral-300' : ''}`}
+                                            className={`h-24 border-b ${!isAvailable ? 'bg-neutral-300/50' : ''}`}
                                         ></div>
                                     )
                                 })}

@@ -365,7 +365,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                                     const currentHourEnd = currentHourStart + 60;
                                     
                                     // Check if this hour block overlaps with any available slot
-                                    const isAvailable = slots.some(slot => 
+                                    const isAvailable = Array.isArray(slots) && slots.some(slot => 
                                         currentHourStart < slot.end && currentHourEnd > slot.start
                                     );
 
@@ -407,3 +407,4 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     
 
     
+

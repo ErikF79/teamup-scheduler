@@ -1,4 +1,5 @@
 
+
 // --- TYPES ---
 
 export interface TimeSlot {
@@ -45,7 +46,7 @@ const teamColors: { [key: string]: string } = {
     'team-4': 'hsl(150 80% 50%)', // Green
 };
 
-const defaultAvailability: DayAvailability[] = [
+const createDefaultAvailability = (): DayAvailability[] => [
     { key: 1, name: 'Lunedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
     { key: 2, name: 'Martedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
     { key: 3, name: 'Mercoledì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
@@ -56,9 +57,9 @@ const defaultAvailability: DayAvailability[] = [
 ];
 
 const gyms: Gym[] = [
-    { id: 'gym-1', name: 'Palestra Nord', availability: defaultAvailability },
-    { id: 'gym-2', name: 'Palestra Sud', availability: defaultAvailability },
-    { id: 'gym-3', name: 'Palestra Est', availability: defaultAvailability },
+    { id: 'gym-1', name: 'Palestra Nord', availability: createDefaultAvailability() },
+    { id: 'gym-2', name: 'Palestra Sud', availability: createDefaultAvailability() },
+    { id: 'gym-3', name: 'Palestra Est', availability: createDefaultAvailability() },
 ];
 
 const teams: Team[] = [

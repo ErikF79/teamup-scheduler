@@ -1,10 +1,11 @@
+
 // --- TYPES ---
 
 export interface DayAvailability {
   key: number; // 1 for Monday, etc.
   name: string;
-  start: number; // hour (0-23)
-  end: number; // hour (0-23)
+  start: number; // minutes from midnight
+  end: number; // minutes from midnight
 }
 
 export interface Gym {
@@ -41,13 +42,13 @@ const teamColors: { [key: string]: string } = {
 };
 
 const defaultAvailability: DayAvailability[] = [
-    { key: 1, name: 'Lunedì', start: 17, end: 23 },
-    { key: 2, name: 'Martedì', start: 17, end: 23 },
-    { key: 3, name: 'Mercoledì', start: 17, end: 23 },
-    { key: 4, name: 'Giovedì', start: 17, end: 23 },
-    { key: 5, name: 'Venerdì', start: 17, end: 23 },
-    { key: 6, name: 'Sabato', start: 14, end: 20 },
-    { key: 7, name: 'Domenica', start: 9, end: 20 },
+    { key: 1, name: 'Lunedì', start: 17 * 60, end: 23 * 60 },
+    { key: 2, name: 'Martedì', start: 17 * 60, end: 23 * 60 },
+    { key: 3, name: 'Mercoledì', start: 17 * 60, end: 23 * 60 },
+    { key: 4, name: 'Giovedì', start: 17 * 60, end: 23 * 60 },
+    { key: 5, name: 'Venerdì', start: 17 * 60, end: 23 * 60 },
+    { key: 6, name: 'Sabato', start: 14 * 60, end: 20 * 60 },
+    { key: 7, name: 'Domenica', start: 9 * 60, end: 20 * 60 },
 ];
 
 const gyms: Gym[] = [
@@ -113,5 +114,7 @@ export const initialData = {
     sessions,
     teamColors,
 };
+
+    
 
     

@@ -76,8 +76,8 @@ export default function Scheduler() {
         const dayConfig = gym?.availability.find(d => d.key === newDay);
 
         if (gym && dayConfig) {
-             const slotStartMinutes = dayConfig.start * 60;
-             const slotEndMinutes = dayConfig.end * 60;
+             const slotStartMinutes = dayConfig.start;
+             const slotEndMinutes = dayConfig.end;
 
              // Check for "Closed" day
              if (dayConfig.start === 0 && dayConfig.end === 0) {
@@ -369,7 +369,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                              <div className="absolute inset-0 z-0 pointer-events-none">
                                 {timeSlots.map((_, hourIndex) => {
                                     const currentHour = MASTER_START_HOUR + hourIndex;
-                                    const isAvailable = currentHour >= start && currentHour < end;
+                                    const isAvailable = (currentHour * 60) >= start && (currentHour * 60) < end;
                                     const isClosed = start === 0 && end === 0;
                                     return (
                                         <div 
@@ -403,6 +403,8 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
         </Card>
     );
 };
+
+    
 
     
 

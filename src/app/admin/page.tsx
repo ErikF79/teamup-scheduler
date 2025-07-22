@@ -66,13 +66,13 @@ export default function AdminPage() {
             id: `gym-${Date.now()}`,
             name: "Nuova Palestra",
             availability: [
-                { key: 1, name: 'Lunedì', start: 17, end: 23 },
-                { key: 2, name: 'Martedì', start: 17, end: 23 },
-                { key: 3, name: 'Mercoledì', start: 17, end: 23 },
-                { key: 4, name: 'Giovedì', start: 17, end: 23 },
-                { key: 5, name: 'Venerdì', start: 17, end: 23 },
-                { key: 6, name: 'Sabato', start: 14, end: 20 },
-                { key: 7, name: 'Domenica', start: 9, end: 20 },
+                { key: 1, name: 'Lunedì', start: 17 * 60, end: 23 * 60 },
+                { key: 2, name: 'Martedì', start: 17 * 60, end: 23 * 60 },
+                { key: 3, name: 'Mercoledì', start: 17 * 60, end: 23 * 60 },
+                { key: 4, name: 'Giovedì', start: 17 * 60, end: 23 * 60 },
+                { key: 5, name: 'Venerdì', start: 17 * 60, end: 23 * 60 },
+                { key: 6, name: 'Sabato', start: 14 * 60, end: 20 * 60 },
+                { key: 7, name: 'Domenica', start: 9 * 60, end: 20 * 60 },
             ]
         };
         updateData({ gyms: [...data.gyms, newGym] });
@@ -303,17 +303,29 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
     
     const timeOptions = useMemo(() => {
         const options = [<option key="closed" value={0}>Chiuso</option>];
-        for (let i = 0; i < 24; i++) {
-             options.push(<option key={i} value={i}>{`${i.toString().padStart(2, '0')}:00`}</option>);
+        for (let h = 0; h < 24; h++) {
+             for (let m = 0; m < 60; m += 15) {
+                const totalMinutes = h * 60 + m;
+                const timeString = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                options.push(<option key={totalMinutes} value={totalMinutes}>{timeString}</option>);
+             }
         }
         return options;
     }, []);
 
-    const endTimeOptions = (startHour: number) => {
+    const endTimeOptions = (startMinutes: number) => {
         const options = [];
-         for (let i = startHour; i <= 24; i++) {
-             options.push(<option key={i} value={i}>{`${i.toString().padStart(2, '0')}:00`}</option>);
+         for (let h = 0; h < 24; h++) {
+             for (let m = 0; m < 60; m += 15) {
+                const totalMinutes = h * 60 + m;
+                if (totalMinutes >= startMinutes) {
+                    const timeString = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    options.push(<option key={totalMinutes} value={totalMinutes}>{timeString}</option>);
+                }
+             }
         }
+        // Add 24:00 option
+        options.push(<option key={24*60} value={24*60}>24:00</option>)
         return options;
     }
 
@@ -427,3 +439,5 @@ function TeamEditForm({ team, onSave, onCancel }: TeamEditFormProps) {
         </div>
     );
 }
+
+    

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -23,7 +22,7 @@ function getWeeksBetween(d1: Date, d2: Date) {
 }
 
 export default function DashboardPage() {
-    const [data, setData] = useState<AppData>(mockData);
+    const [data, setData] = useState<AppData>({ gyms: [], teams: [], sessions: [] });
 
     const fetchData = useCallback(() => {
         if (typeof window !== 'undefined') {
@@ -34,9 +33,12 @@ export default function DashboardPage() {
                     if (parsedData.gyms && parsedData.teams && parsedData.sessions) {
                         setData(parsedData);
                     }
+                } else {
+                    setData(mockData); // Fallback to mockData if nothing in localStorage
                 }
             } catch (e) {
-                console.error("Failed to load data from localStorage", e);
+                console.error("Failed to load data from localStorage, using mock data", e);
+                setData(mockData);
             }
         }
     }, []);
@@ -252,7 +254,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
-
-    

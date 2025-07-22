@@ -90,22 +90,36 @@ export default function Scheduler() {
     if (newGymId && newDay !== null && newStartTime !== null) {
         const gym = appData.gyms.find(g => g.id === newGymId);
         const dayConfig = gym?.availability.find(d => d.key === newDay);
+        const availabilitySlots = dayConfig?.slots || [];
 
-        if (gym && dayConfig) {
+        if (gym && availabilitySlots.length > 0) {
              const sessionEndMinutes = newStartTime + updatedSession.duration;
 
-             const isWithinAvailableSlot = Array.isArray(dayConfig.slots) && dayConfig.slots.some(slot => 
-                newStartTime >= slot.start && sessionEndMinutes <= slot.end
-             );
+             // New validation logic: check if every minute of the session falls within an available slot
+             let isWithinAvailableSlot = true;
+             for (let minute = newStartTime; minute < sessionEndMinutes; minute++) {
+                 const isMinuteAvailable = availabilitySlots.some(slot => minute >= slot.start && minute < slot.end);
+                 if (!isMinuteAvailable) {
+                     isWithinAvailableSlot = false;
+                     break;
+                 }
+             }
 
              if (!isWithinAvailableSlot) {
                  toast({
                     title: "Orario non valido!",
-                    description: "La sessione è fuori dagli orari disponibili per la palestra in questo giorno.",
+                    description: "La sessione è fuori dagli orari disponibili o si estende su una fascia non disponibile.",
                     variant: "destructive"
                 });
                 return false;
              }
+        } else if (gym) { // No slots defined for the day
+             toast({
+                title: "Orario non valido!",
+                description: `La palestra ${gym.name} è chiusa in questo giorno.`,
+                variant: "destructive"
+            });
+            return false;
         }
 
         const collision = appData.sessions.some(s => {
@@ -116,7 +130,7 @@ export default function Scheduler() {
             const s_end = s.startTime + s.duration;
             const new_start = newStartTime;
             const new_end = newStartTime + updatedSession.duration;
-
+            
             // Overlap happens if one session starts before the other ends
             // and ends after the other starts.
             return new_start < s_end && new_end > s_start;
@@ -125,7 +139,7 @@ export default function Scheduler() {
         if (collision) {
             toast({
                 title: "Collisione Rilevata!",
-                description: "Impossibile spostare la sessione in questo slot orario.",
+                description: "Impossibile spostare la sessione in questo slot orario, è già occupato.",
                 variant: "destructive"
             });
             return false;
@@ -258,7 +272,7 @@ function DayViewScheduler() {
                      {DAYS_OF_WEEK.map(day => (
                         <TabsContent key={day.key} value={String(day.key)} className="contents">
                             {gyms.map(gym => (
-                               <DayGymScheduleCell key={gym.id} gym={gym} dayKey={day.key} />
+                               <DayGymScheduleCell key={`${gym.id}-${day.key}`} gym={gym} dayKey={day.key} />
                             ))}
                         </TabsContent>
                     ))}
@@ -503,15 +517,15 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                 {/* Background masks for unavailable times */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 {/* Full day mask */}
-                <div className="absolute inset-0 bg-neutral-200/50"></div>
+                <div className="absolute inset-0 bg-neutral-200/50 dark:bg-neutral-800/50"></div>
                 {/* Available slots */}
                 {slots.map((slot, index) => {
                     const top = ((slot.start - MASTER_START_HOUR * 60) / totalMinutes) * 100;
                     const height = ((slot.end - slot.start) / totalMinutes) * 100;
                     return (
                         <div key={index} className="absolute w-full bg-background" style={{ top: `${top}%`, height: `${height}%` }}>
-                           {Array.from({length: Math.floor((slot.end - slot.start)/15)}).map((_, i) => (
-                               <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-gray-300' : 'border-gray-200/70'}`}/>
+                           {Array.from({length: Math.ceil((slot.end - slot.start)/15)}).map((_, i) => (
+                               <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-gray-300 dark:border-gray-700' : 'border-gray-200/70 dark:border-gray-800/70'}`}/>
                            ))}
                         </div>
                     )

@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
         const totalHoursAvailablePerWeek = data.gyms.reduce((total, gym) => {
             const gymHours = gym.availability.reduce((sum, day) => {
-                const dayHours = day.slots.reduce((daySum, slot) => daySum + ((slot.end - slot.start) / 60), 0);
+                const dayHours = (day.slots || []).reduce((daySum, slot) => daySum + ((slot.end - slot.start) / 60), 0);
                 return sum + dayHours;
             }, 0);
             return total + gymHours;
@@ -81,7 +81,7 @@ export default function DashboardPage() {
         
         const gymDetails = data.gyms.map(gym => {
             const weeklyHours = gym.availability.reduce((sum, day) => {
-                const dayHours = day.slots.reduce((daySum, slot) => daySum + ((slot.end - slot.start) / 60), 0);
+                const dayHours = (day.slots || []).reduce((daySum, slot) => daySum + ((slot.end - slot.start) / 60), 0);
                 return sum + dayHours;
             }, 0);
             return {
@@ -247,5 +247,7 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
 
     

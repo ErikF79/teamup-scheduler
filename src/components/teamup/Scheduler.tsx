@@ -460,7 +460,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     const slots = dayAvailability?.slots || [];
     
     const totalMinutes = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
-    const totalHeight = totalMinutes / 15 * 24; // Total height in pixels
+    const totalHeightInPx = totalMinutes / 15 * 24; // 24px per 15-min slot
 
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -495,7 +495,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     return (
         <div
             className="row-start-2 col-start-auto relative border-b border-l transition-colors"
-            style={{ height: `${totalHeight}px` }}
+            style={{ height: `${totalHeightInPx}px` }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -591,3 +591,4 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
 }
 
     
+

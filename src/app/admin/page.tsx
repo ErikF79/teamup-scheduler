@@ -324,11 +324,12 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
     
     const timeOptions = useMemo(() => {
         const options = [];
-        options.push(<option key={0} value={0}>Chiuso</option>);
+        options.push(<option key="closed" value={0}>Chiuso</option>);
         for (let h = 0; h < 24; h++) {
              for (let m = 0; m < 60; m += 15) {
                 const totalMinutes = h * 60 + m;
-                if (totalMinutes === 0 && h > 0) continue; // Skip 00:00 if it's not the "Chiuso" option
+                // Skip the 00:00 case as it's handled by "Chiuso"
+                if (totalMinutes === 0) continue; 
                 const timeString = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                 options.push(<option key={totalMinutes} value={totalMinutes}>{timeString}</option>);
              }
@@ -477,5 +478,3 @@ function TeamEditForm({ team, onSave, onCancel }: TeamEditFormProps) {
         </div>
     );
 }
-
-    

@@ -2,18 +2,29 @@
 
 "use client";
 
-import React, { useState, createContext, useContext, useEffect, useMemo } from 'react';
+import React, { useState, createContext, useContext, useEffect, useMemo, useCallback } from 'react';
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, GripVertical, Users } from 'lucide-react';
+import { Building2, GripVertical, Users, CalendarDays, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 // --- CONSTANTS ---
 const MASTER_START_HOUR = 9;
 const MASTER_END_HOUR = 23;
 const TOTAL_MASTER_MINUTES = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
+const DAYS_OF_WEEK = [
+    { key: 1, name: 'Lunedì' },
+    { key: 2, name: 'Martedì' },
+    { key: 3, name: 'Mercoledì' },
+    { key: 4, name: 'Giovedì' },
+    { key: 5, name: 'Venerdì' },
+    { key: 6, name: 'Sabato' },
+    { key: 7, name: 'Domenica' },
+];
 
 // --- CONTEXT ---
 interface SchedulerContextType {
@@ -139,40 +150,113 @@ export default function Scheduler() {
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
              <div className="flex-grow flex flex-col h-full overflow-hidden">
-                <div className="flex-shrink-0 pb-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Navigazione Rapida Palestre</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap gap-2">
-                             {appData.gyms.map(gym => (
-                                <a key={gym.id} href={`#${gym.id}`} onClick={(e) => {
-                                    e.preventDefault();
-                                    document.getElementById(gym.id)?.scrollIntoView({ behavior: 'smooth' });
-                                }}>
-                                    <Button variant="outline">{gym.name}</Button>
-                                </a>
-                            ))}
-                        </CardContent>
-                    </Card>
-                </div>
-                <ScrollArea className="flex-grow h-full pr-4">
-                  <div className="space-y-6">
-                    {appData.gyms.map(gym => (
-                      <div key={gym.id} id={gym.id} className="scroll-mt-4">
-                        <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
-                           <Building2 className="text-primary"/> {gym.name}
-                        </h2>
-                        <GymScheduleGrid gym={gym} />
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                 <Tabs defaultValue="gym-view" className="flex-grow flex flex-col h-full overflow-hidden">
+                    <div className="flex-shrink-0 flex items-center justify-between pb-4">
+                         <TabsList>
+                            <TabsTrigger value="gym-view"><Building2 className="mr-2 h-4 w-4"/>Vista per Palestra</TabsTrigger>
+                            <TabsTrigger value="day-view"><CalendarDays className="mr-2 h-4 w-4"/>Vista per Giorno</TabsTrigger>
+                        </TabsList>
+                        <Card className="hidden">
+                            <CardHeader>
+                                <CardTitle className="text-base">Navigazione Rapida Palestre</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-wrap gap-2">
+                                {appData.gyms.map(gym => (
+                                    <a key={gym.id} href={`#${gym.id}`} onClick={(e) => {
+                                        e.preventDefault();
+                                        document.getElementById(gym.id)?.scrollIntoView({ behavior: 'smooth' });
+                                    }}>
+                                        <Button variant="outline">{gym.name}</Button>
+                                    </a>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <TabsContent value="gym-view" className="flex-grow h-full overflow-hidden">
+                       <GymViewScheduler />
+                    </TabsContent>
+                    <TabsContent value="day-view" className="flex-grow h-full overflow-hidden">
+                       <DayViewScheduler />
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     </SchedulerContext.Provider>
   );
 };
+
+// --- VIEWS ---
+
+function GymViewScheduler() {
+    const { gyms } = useScheduler();
+    return (
+        <ScrollArea className="flex-grow h-full pr-4">
+            <div className="space-y-6">
+            {gyms.map(gym => (
+                <div key={gym.id} id={gym.id} className="scroll-mt-4">
+                <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+                    <Building2 className="text-primary"/> {gym.name}
+                </h2>
+                <GymScheduleGrid gym={gym} />
+                </div>
+            ))}
+            </div>
+      </ScrollArea>
+    )
+}
+
+function DayViewScheduler() {
+    const { gyms } = useScheduler();
+
+    const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) }, (_, i) => {
+        const hour = MASTER_START_HOUR + i;
+        return `${hour.toString().padStart(2, '0')}:00`;
+    }), []);
+
+    return (
+         <Tabs defaultValue="1" className="flex-grow flex flex-col h-full overflow-hidden">
+             <div className="flex-shrink-0 pb-4">
+                <TabsList className="grid w-full grid-cols-7">
+                    {DAYS_OF_WEEK.map(day => (
+                        <TabsTrigger key={day.key} value={String(day.key)}>{day.name}</TabsTrigger>
+                    ))}
+                </TabsList>
+             </div>
+            <ScrollArea className="flex-grow h-full">
+                 <div className="grid grid-cols-[auto_repeat(var(--gym-count),1fr)]" style={{'--gym-count': gyms.length} as React.CSSProperties}>
+                    {/* Time Column Header */}
+                    <div className="row-span-1 col-span-1 bg-card border-r">
+                         <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
+                    </div>
+                    {/* Gym Headers */}
+                    {gyms.map(gym => (
+                        <div key={gym.id} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm px-2">
+                            {gym.name}
+                        </div>
+                    ))}
+
+                    {/* Time Slots Column */}
+                    <div className="row-start-2 col-start-1 bg-card border-r">
+                        {timeSlots.map(time => (
+                            <div key={time} className="h-24 flex items-center justify-center text-xs text-muted-foreground border-b last:border-b-0">
+                               {time}
+                            </div>
+                        ))}
+                    </div>
+                     {DAYS_OF_WEEK.map(day => (
+                        <TabsContent key={day.key} value={String(day.key)} className="contents">
+                            {gyms.map(gym => (
+                               <DayGymScheduleCell key={gym.id} gym={gym} dayKey={day.key} />
+                            ))}
+                        </TabsContent>
+                    ))}
+                </div>
+            </ScrollArea>
+        </Tabs>
+    )
+}
+
 
 // --- UTILITY FUNCTIONS ---
 function formatTime(minutesFromDayStart: number) {
@@ -286,46 +370,14 @@ const UnassignedSessionsColumn = () => {
   );
 };
 
-// --- GYM SCHEDULE GRID ---
+// --- GYM SCHEDULE GRID (WEEK VIEW) ---
 const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
-    const { getSessionsByGymAndDay, moveSession } = useScheduler();
     
     const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) }, (_, i) => {
         const hour = MASTER_START_HOUR + i;
         return `${hour.toString().padStart(2, '0')}:00`;
     }), []);
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>, dayIndex: number) => {
-        e.preventDefault();
-        const sessionId = e.dataTransfer.getData('sessionId');
-        const target = e.currentTarget;
-        target.classList.remove('bg-accent/10');
-        
-        if (!sessionId) return;
-
-        const contentRect = target.getBoundingClientRect();
-        const dropY = e.clientY - contentRect.top;
-        const totalHeight = contentRect.height;
-        
-        if (totalHeight <= 0) return;
-
-        const minutesFromTop = (dropY / totalHeight) * TOTAL_MASTER_MINUTES;
-        const snappedMinutes = Math.floor(minutesFromTop / 15) * 15;
-        const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
-        
-        const dayKey = dayIndex + 1;
-
-        moveSession(sessionId, gym.id, dayKey, newStartTime);
-    };
-
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        e.currentTarget.classList.add('bg-accent/10');
-    };
-
-    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-        e.currentTarget.classList.remove('bg-accent/10');
-    };
 
     return (
         <Card>
@@ -336,9 +388,9 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Day Headers */}
-                    {gym.availability.map(({name}, index) => (
-                        <div key={index} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm">
-                            {name}
+                    {DAYS_OF_WEEK.map(day => (
+                        <div key={day.key} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm">
+                            {day.name}
                         </div>
                     ))}
                     
@@ -352,54 +404,99 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                     </div>
 
                     {/* Schedule Cells */}
-                    {gym.availability.map(({key: dayKey, slots}, dayIndex) => (
-                        <div
-                            key={dayIndex}
-                            className="row-start-2 col-start-auto relative border-b border-l transition-colors"
-                            onDrop={(e) => handleDrop(e, dayIndex)}
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                        >
-                             {/* Background masks for unavailable times */}
-                            <div className="absolute inset-0 z-0 pointer-events-none">
-                                {timeSlots.map((_, hourIndex) => {
-                                    const currentHourStart = (MASTER_START_HOUR + hourIndex) * 60;
-                                    const currentHourEnd = currentHourStart + 60;
-                                    
-                                    // Check if this hour block overlaps with any available slot
-                                    const isAvailable = Array.isArray(slots) && slots.some(slot => 
-                                        currentHourStart < slot.end && currentHourEnd > slot.start
-                                    );
-
-                                    return (
-                                        <div 
-                                            key={hourIndex}
-                                            className={`h-24 border-b ${!isAvailable ? 'bg-neutral-300/50' : ''}`}
-                                        ></div>
-                                    )
-                                })}
-                            </div>
-
-                            {/* Scheduled Sessions */}
-                            <div className="relative z-10 h-full">
-                                {getSessionsByGymAndDay(gym.id, dayKey).map(session => {
-                                    if (session.startTime === null || session.duration <= 0) return null;
-                                    const top = ((session.startTime - MASTER_START_HOUR * 60) / TOTAL_MASTER_MINUTES) * 100;
-                                    const height = (session.duration / TOTAL_MASTER_MINUTES) * 100;
-
-                                    if (top < 0 || top >= 100) return null;
-
-                                    return (
-                                        <div key={session.id} className="absolute w-full px-1" style={{ top: `${top}%`, height: `${height}%` }}>
-                                            <SessionCard session={session} isDraggable={true} />
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                    {DAYS_OF_WEEK.map(day => (
+                        <DayGymScheduleCell key={day.key} gym={gym} dayKey={day.key} />
                     ))}
                 </div>
             </CardContent>
         </Card>
+    );
+};
+
+
+// --- DAY-GYM CELL (FOR BOTH VIEWS) ---
+
+interface DayGymScheduleCellProps {
+    gym: Gym;
+    dayKey: number;
+}
+const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
+    const { getSessionsByGymAndDay, moveSession } = useScheduler();
+    
+    const dayAvailability = gym.availability.find(d => d.key === dayKey);
+    const slots = dayAvailability?.slots || [];
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const sessionId = e.dataTransfer.getData('sessionId');
+        const target = e.currentTarget;
+        target.classList.remove('bg-accent/10');
+        
+        if (!sessionId) return;
+
+        const contentRect = target.getBoundingClientRect();
+        const dropY = e.clientY - contentRect.top;
+        
+        if (contentRect.height <= 0) return;
+
+        const minutesFromTop = (dropY / contentRect.height) * TOTAL_MASTER_MINUTES;
+        const snappedMinutes = (Math.round(minutesFromTop / 15)) * 15;
+        const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
+
+        moveSession(sessionId, gym.id, dayKey, newStartTime);
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.currentTarget.classList.add('bg-accent/10');
+    };
+
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        e.currentTarget.classList.remove('bg-accent/10');
+    };
+    
+    return (
+        <div
+            className="row-start-2 col-start-auto relative border-b border-l transition-colors"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+        >
+                {/* Background masks for unavailable times */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                {Array.from({ length: MASTER_END_HOUR - MASTER_START_HOUR }).map((_, hourIndex) => {
+                    const currentHourStart = (MASTER_START_HOUR + hourIndex) * 60;
+                    const currentHourEnd = currentHourStart + 60;
+                    
+                    const isAvailable = slots.some(slot => 
+                        currentHourStart < slot.end && currentHourEnd > slot.start
+                    );
+
+                    return (
+                        <div 
+                            key={hourIndex}
+                            className={`h-24 border-b ${!isAvailable ? 'bg-neutral-300/50' : ''}`}
+                        ></div>
+                    )
+                })}
+            </div>
+
+            {/* Scheduled Sessions */}
+            <div className="relative z-10 h-full">
+                {getSessionsByGymAndDay(gym.id, dayKey).map(session => {
+                    if (session.startTime === null || session.duration <= 0) return null;
+                    const top = ((session.startTime - MASTER_START_HOUR * 60) / TOTAL_MASTER_MINUTES) * 100;
+                    const height = (session.duration / TOTAL_MASTER_MINUTES) * 100;
+
+                    if (top < 0 || top >= 100) return null;
+
+                    return (
+                        <div key={session.id} className="absolute w-full px-1" style={{ top: `${top}%`, height: `${height}%` }}>
+                            <SessionCard session={session} isDraggable={true} />
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
     );
 };

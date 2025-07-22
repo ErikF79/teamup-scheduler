@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, createContext, useContext, useEffect, useMemo, useCallback } from 'react';
@@ -216,9 +215,14 @@ function GymViewScheduler() {
 function DayViewScheduler() {
     const { gyms } = useScheduler();
 
-    const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) }, (_, i) => {
-        const hour = MASTER_START_HOUR + i;
-        return `${hour.toString().padStart(2, '0')}:00`;
+    const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) * 4 }, (_, i) => {
+        const totalMinutes = MASTER_START_HOUR * 60 + i * 15;
+        const hour = Math.floor(totalMinutes / 60);
+        const minute = totalMinutes % 60;
+        if (minute === 0) {
+            return { time: `${hour.toString().padStart(2, '0')}:00`, isHour: true };
+        }
+        return { time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`, isHour: false };
     }), []);
 
     return (
@@ -231,23 +235,23 @@ function DayViewScheduler() {
                 </TabsList>
              </div>
             <ScrollArea className="flex-grow h-full">
-                 <div className="grid grid-cols-[auto_repeat(var(--gym-count),1fr)]" style={{'--gym-count': gyms.length} as React.CSSProperties}>
+                 <div className="grid grid-cols-[auto_repeat(var(--gym-count),1fr)] min-w-full" style={{'--gym-count': gyms.length} as React.CSSProperties}>
                     {/* Time Column Header */}
-                    <div className="row-span-1 col-span-1 bg-card border-r">
+                    <div className="row-span-1 col-span-1 bg-card border-r sticky top-0 z-20">
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Gym Headers */}
                     {gyms.map(gym => (
-                        <div key={gym.id} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm px-2">
+                        <div key={gym.id} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
                             {gym.name}
                         </div>
                     ))}
 
                     {/* Time Slots Column */}
-                    <div className="row-start-2 col-start-1 bg-card border-r">
-                        {timeSlots.map(time => (
-                            <div key={time} className="h-24 flex items-center justify-center text-xs text-muted-foreground border-b last:border-b-0">
-                               {time}
+                    <div className="row-start-2 col-start-1 bg-card border-r sticky left-0 z-10">
+                        {timeSlots.map(({time, isHour}) => (
+                            <div key={time} className={`h-6 flex items-center justify-center text-muted-foreground ${isHour ? 'font-semibold text-xs border-t' : 'text-[10px]'}`}>
+                               {isHour && time}
                             </div>
                         ))}
                     </div>
@@ -397,9 +401,14 @@ const UnassignedSessionsColumn = () => {
 // --- GYM SCHEDULE GRID (WEEK VIEW) ---
 const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     
-    const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) }, (_, i) => {
-        const hour = MASTER_START_HOUR + i;
-        return `${hour.toString().padStart(2, '0')}:00`;
+    const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) * 4 }, (_, i) => {
+        const totalMinutes = MASTER_START_HOUR * 60 + i * 15;
+        const hour = Math.floor(totalMinutes / 60);
+        const minute = totalMinutes % 60;
+        if (minute === 0) {
+            return { time: `${hour.toString().padStart(2, '0')}:00`, isHour: true };
+        }
+        return { time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`, isHour: false };
     }), []);
 
 
@@ -408,21 +417,21 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
             <CardContent className="p-0">
                 <div className="grid grid-cols-[auto_repeat(7,1fr)] min-w-full">
                     {/* Time Column Header */}
-                    <div className="row-span-1 col-span-1 bg-card border-r">
+                    <div className="row-span-1 col-span-1 bg-card border-r sticky top-0 z-20">
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Day Headers */}
                     {DAYS_OF_WEEK.map(day => (
-                        <div key={day.key} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm">
+                        <div key={day.key} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm sticky top-0 bg-card z-10">
                             {day.name}
                         </div>
                     ))}
                     
                     {/* Time Slots Column */}
-                    <div className="row-start-2 col-start-1 bg-card border-r">
-                        {timeSlots.map(time => (
-                            <div key={time} className="h-24 flex items-center justify-center text-xs text-muted-foreground border-b last:border-b-0">
-                               {time}
+                    <div className="row-start-2 col-start-1 bg-card border-r sticky left-0 z-10">
+                        {timeSlots.map(({time, isHour}) => (
+                            <div key={time} className={`h-6 flex items-center justify-center text-muted-foreground ${isHour ? 'font-semibold text-xs border-t' : 'text-[10px]'}`}>
+                               {isHour && time}
                             </div>
                         ))}
                     </div>
@@ -449,6 +458,10 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     const dayAvailability = gym.availability.find(d => d.key === dayKey);
     const slots = dayAvailability?.slots || [];
+    
+    const totalMinutes = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
+    const totalHeight = totalMinutes / 15 * 6; // Total height based on 15 min intervals (4 per hour * 6px height per 15min)
+
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -463,7 +476,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         
         if (contentRect.height <= 0) return;
 
-        const minutesFromTop = (dropY / contentRect.height) * TOTAL_MASTER_MINUTES;
+        const minutesFromTop = (dropY / contentRect.height) * totalMinutes;
         const snappedMinutes = (Math.round(minutesFromTop / 15)) * 15;
         const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
 
@@ -482,25 +495,25 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     return (
         <div
             className="row-start-2 col-start-auto relative border-b border-l transition-colors"
+            style={{ height: `${totalHeight}px` }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
         >
                 {/* Background masks for unavailable times */}
             <div className="absolute inset-0 z-0 pointer-events-none">
-                {Array.from({ length: MASTER_END_HOUR - MASTER_START_HOUR }).map((_, hourIndex) => {
-                    const currentHourStart = (MASTER_START_HOUR + hourIndex) * 60;
-                    const currentHourEnd = currentHourStart + 60;
-                    
-                    const isAvailable = slots.some(slot => 
-                        currentHourStart < slot.end && currentHourEnd > slot.start
-                    );
-
+                {/* Full day mask */}
+                <div className="absolute inset-0 bg-neutral-200/50"></div>
+                {/* Available slots */}
+                {slots.map((slot, index) => {
+                    const top = ((slot.start - MASTER_START_HOUR * 60) / totalMinutes) * 100;
+                    const height = ((slot.end - slot.start) / totalMinutes) * 100;
                     return (
-                        <div 
-                            key={hourIndex}
-                            className={`h-24 border-b ${!isAvailable ? 'bg-neutral-300/50' : ''}`}
-                        ></div>
+                        <div key={index} className="absolute w-full bg-background" style={{ top: `${top}%`, height: `${height}%` }}>
+                           {Array.from({length: Math.floor((slot.end - slot.start)/15)}).map((_, i) => (
+                               <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-gray-300' : 'border-gray-200/70'}`}/>
+                           ))}
+                        </div>
                     )
                 })}
             </div>
@@ -509,8 +522,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
             <div className="relative z-10 h-full">
                 {getSessionsByGymAndDay(gym.id, dayKey).map(session => {
                     if (session.startTime === null || session.duration <= 0) return null;
-                    const top = ((session.startTime - MASTER_START_HOUR * 60) / TOTAL_MASTER_MINUTES) * 100;
-                    const height = (session.duration / TOTAL_MASTER_MINUTES) * 100;
+                    const top = ((session.startTime - MASTER_START_HOUR * 60) / totalMinutes) * 100;
+                    const height = (session.duration / totalMinutes) * 100;
 
                     if (top < 0 || top >= 100) return null;
 
@@ -576,3 +589,5 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
         </Dialog>
     )
 }
+
+    

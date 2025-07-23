@@ -47,6 +47,7 @@ interface SchedulerContextType {
   getUnassignedSessions: () => Session[];
   setEditingSession: (session: Session | null) => void;
   setPlacingSessionInfo: (info: PlacingSessionInfo | null) => void;
+  placingSessionInfo: PlacingSessionInfo | null;
 }
 
 const SchedulerContext = createContext<SchedulerContextType | null>(null);
@@ -112,8 +113,12 @@ export default function Scheduler() {
     if (!gym) return false;
     
     const dayConfig = gym.availability.find(d => d.key === newDay);
-    if (!dayConfig) return false;
+    if (!dayConfig) {
+         toast({ title: "Errore", description: "Configurazione giorno non trovata.", variant: "destructive" });
+        return false;
+    }
     
+    // Check if the session falls entirely within any available slots
     const isWithinAvailableSlot = dayConfig.slots.some(slot =>
         newStartTime >= slot.start && sessionEndMinutes <= slot.end
     );
@@ -134,6 +139,7 @@ export default function Scheduler() {
         }
         const s_start = s.startTime;
         const s_end = s.startTime + s.duration;
+        // Check for any overlap: (start1 < end2) and (end1 > start2)
         return newStartTime < s_end && sessionEndMinutes > s_start;
     });
 
@@ -167,7 +173,7 @@ export default function Scheduler() {
   }
   
   return (
-    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, setPlacingSessionInfo }}>
+    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, setPlacingSessionInfo, placingSessionInfo }}>
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
              <div className="flex-grow flex flex-col h-full overflow-hidden">
@@ -189,7 +195,7 @@ export default function Scheduler() {
             </div>
         </div>
         {editingSession && <EditSessionDialog session={editingSession} />}
-        {placingSessionInfo && <PlaceSessionDialog />}
+        {placingSessionInfo && <PlaceSessionDialog info={placingSessionInfo}/>}
     </SchedulerContext.Provider>
   );
 };
@@ -608,12 +614,14 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
     )
 }
 
-function PlaceSessionDialog() {
+interface PlaceSessionDialogProps {
+  info: PlacingSessionInfo;
+}
+function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
     const { teams, sessions, setPlacingSessionInfo, moveSession, gyms } = useScheduler();
     const [newTime, setNewTime] = useState("17:00");
 
-    // This is safe because this component is only rendered when placingSessionInfo is not null
-    const { sessionId, gymId, dayKey } = useContext(SchedulerContext)!.placingSessionInfo!; 
+    const { sessionId, gymId, dayKey } = info; 
     
     const session = sessions.find(s => s.id === sessionId);
     const team = session ? teams.find(t => t.id === session.teamId) : null;
@@ -665,3 +673,5 @@ function PlaceSessionDialog() {
         </Dialog>
     )
 }
+
+    

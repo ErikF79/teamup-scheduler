@@ -508,7 +508,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     return (
         <div
-            className="row-start-2 col-start-auto relative border-b border-l transition-colors"
+            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-muted/20"
             style={{ height: `${totalHeightInPx}px` }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -516,8 +516,6 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         >
             {/* Background masks for unavailable times */}
             <div className="absolute inset-0 z-0 pointer-events-none">
-                {/* Full day mask */}
-                <div className="absolute inset-0 bg-neutral-200/50 dark:bg-neutral-800/50"></div>
                 {/* Available slots */}
                 {slots.map((slot, index) => {
                     const top = ((slot.start - MASTER_START_HOUR * 60) / totalMinutes) * 100;
@@ -610,3 +608,6 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
 
     
 
+
+
+    

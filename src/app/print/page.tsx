@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { initialData as mockData, Gym, Team, Session, Config, AppData } from '@/lib/teamup';
-import { ArrowLeft, Printer, Building2, Users, Calendar, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Printer, Building2, Users, Calendar, AlertCircle, Download } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 
@@ -97,7 +97,7 @@ export default function PrintPage() {
                     <Printer /> Stampa Palinsesto
                 </h1>
                 <div className="flex items-center gap-2">
-                    <Button onClick={handlePrint} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900"><Printer className="mr-2 h-4 w-4" />Stampa Pagina</Button>
+                    <Button onClick={handlePrint} variant="outline"><Printer className="mr-2 h-4 w-4" />Stampa Pagina</Button>
                     <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
                 </div>
             </header>
@@ -106,54 +106,64 @@ export default function PrintPage() {
                  <Card className="w-full max-w-4xl mb-8 no-print">
                     <CardHeader>
                         <CardTitle>Opzioni di Stampa</CardTitle>
-                        <CardDescription>Scegli cosa vuoi stampare. Il contenuto verrà generato qui sotto in un formato A4.</CardDescription>
+                        <CardDescription>Scegli cosa vuoi visualizzare. Il contenuto verrà generato qui sotto in un formato A4, pronto per la stampa o il salvataggio in PDF.</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex items-center gap-4">
-                        <div>
-                            <label className="text-sm font-medium mb-1 block">Tipo di Vista</label>
-                            <Select value={viewType} onValueChange={(value) => setViewType(value as any)}>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Seleziona vista" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="gym"><Building2 className="mr-2 h-4 w-4"/>Per Palestra</SelectItem>
-                                    <SelectItem value="team"><Users className="mr-2 h-4 w-4"/>Per Squadra</SelectItem>
-                                    <SelectItem value="day"><Calendar className="mr-2 h-4 w-4"/>Per Giorno</SelectItem>
-                                </SelectContent>
-                            </Select>
+                    <CardContent className="flex flex-col gap-4">
+                        <div className="flex items-end gap-4">
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Tipo di Vista</label>
+                                <Select value={viewType} onValueChange={(value) => setViewType(value as any)}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Seleziona vista" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="gym"><Building2 className="mr-2 h-4 w-4"/>Per Palestra</SelectItem>
+                                        <SelectItem value="team"><Users className="mr-2 h-4 w-4"/>Per Squadra</SelectItem>
+                                        <SelectItem value="day"><Calendar className="mr-2 h-4 w-4"/>Per Giorno</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                            <label className="text-sm font-medium mb-1 block">Seleziona Elemento</label>
+                            {viewType === 'gym' && 
+                                    <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
+                                        <SelectTrigger className="w-[280px]">
+                                            <SelectValue placeholder="Seleziona palestra" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {data.gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                            }
+                            {viewType === 'team' && 
+                                    <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
+                                        <SelectTrigger className="w-[280px]">
+                                            <SelectValue placeholder="Seleziona squadra" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {data.teams.map(team => <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                            }
+                            {viewType === 'day' && 
+                                    <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
+                                        <SelectTrigger className="w-[280px]">
+                                            <SelectValue placeholder="Seleziona giorno" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {DAYS_OF_WEEK.map(day => <SelectItem key={day.key} value={String(day.key)}>{day.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                            }
+                            </div>
                         </div>
-                        <div>
-                           <label className="text-sm font-medium mb-1 block">Seleziona Elemento</label>
-                           {viewType === 'gym' && 
-                                <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
-                                    <SelectTrigger className="w-[280px]">
-                                        <SelectValue placeholder="Seleziona palestra" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {data.gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                           }
-                           {viewType === 'team' && 
-                                <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
-                                    <SelectTrigger className="w-[280px]">
-                                        <SelectValue placeholder="Seleziona squadra" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {data.teams.map(team => <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                           }
-                           {viewType === 'day' && 
-                                <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
-                                    <SelectTrigger className="w-[280px]">
-                                        <SelectValue placeholder="Seleziona giorno" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {DAYS_OF_WEEK.map(day => <SelectItem key={day.key} value={String(day.key)}>{day.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                           }
+                        <div className="flex items-center gap-2 pt-4 border-t">
+                            <Button onClick={handlePrint} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
+                                <Printer className="mr-2 h-4 w-4" />Stampa
+                            </Button>
+                            <Button onClick={handlePrint} variant="outline" className="border-green-800 text-green-800 hover:bg-green-50 hover:text-green-900">
+                                <Download className="mr-2 h-4 w-4" />Salva PDF
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -329,5 +339,3 @@ const DayPrintView = ({ dayKey, data }: { dayKey: number, data: Config }) => {
         </div>
     );
 };
-
-    

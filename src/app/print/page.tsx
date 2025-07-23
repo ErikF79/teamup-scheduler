@@ -107,61 +107,59 @@ export default function PrintPage() {
                         <CardTitle>Opzioni di Stampa</CardTitle>
                         <CardDescription>Scegli cosa vuoi visualizzare. Il contenuto verrà generato qui sotto in un formato A4, pronto per la stampa o il salvataggio in PDF.</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-4">
-                            <div className="flex items-end gap-4">
-                                <div>
-                                    <label className="text-sm font-medium mb-1 block">Tipo di Vista</label>
-                                    <Select value={viewType} onValueChange={(value) => setViewType(value as any)}>
-                                        <SelectTrigger className="w-[180px]">
-                                            <SelectValue placeholder="Seleziona vista" />
+                    <CardContent className="space-y-4">
+                        <div className="flex flex-wrap items-end gap-4">
+                            <div>
+                                <label className="text-sm font-medium mb-1 block">Tipo di Vista</label>
+                                <Select value={viewType} onValueChange={(value) => setViewType(value as any)}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Seleziona vista" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="gym"><Building2 className="mr-2 h-4 w-4"/>Per Palestra</SelectItem>
+                                        <SelectItem value="team"><Users className="mr-2 h-4 w-4"/>Per Squadra</SelectItem>
+                                        <SelectItem value="day"><Calendar className="mr-2 h-4 w-4"/>Per Giorno</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                            <label className="text-sm font-medium mb-1 block">Seleziona Elemento</label>
+                            {viewType === 'gym' && 
+                                    <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
+                                        <SelectTrigger className="w-[280px]">
+                                            <SelectValue placeholder="Seleziona palestra" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="gym"><Building2 className="mr-2 h-4 w-4"/>Per Palestra</SelectItem>
-                                            <SelectItem value="team"><Users className="mr-2 h-4 w-4"/>Per Squadra</SelectItem>
-                                            <SelectItem value="day"><Calendar className="mr-2 h-4 w-4"/>Per Giorno</SelectItem>
+                                            {data.gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
-                                </div>
-                                <div>
-                                <label className="text-sm font-medium mb-1 block">Seleziona Elemento</label>
-                                {viewType === 'gym' && 
-                                        <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
-                                            <SelectTrigger className="w-[280px]">
-                                                <SelectValue placeholder="Seleziona palestra" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {data.gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                }
-                                {viewType === 'team' && 
-                                        <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
-                                            <SelectTrigger className="w-[280px]">
-                                                <SelectValue placeholder="Seleziona squadra" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {data.teams.map(team => <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                }
-                                {viewType === 'day' && 
-                                        <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
-                                            <SelectTrigger className="w-[280px]">
-                                                <SelectValue placeholder="Seleziona giorno" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {DAYS_OF_WEEK.map(day => <SelectItem key={day.key} value={String(day.key)}>{day.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                }
-                                </div>
-                             </div>
-                             <div className="flex items-center gap-2 pt-4 border-t mt-4">
-                                <Button onClick={handlePrint} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
-                                    <Printer className="mr-2 h-4 w-4" />Stampa / Salva PDF
-                                </Button>
+                            }
+                            {viewType === 'team' && 
+                                    <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
+                                        <SelectTrigger className="w-[280px]">
+                                            <SelectValue placeholder="Seleziona squadra" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {data.teams.map(team => <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                            }
+                            {viewType === 'day' && 
+                                    <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
+                                        <SelectTrigger className="w-[280px]">
+                                            <SelectValue placeholder="Seleziona giorno" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {DAYS_OF_WEEK.map(day => <SelectItem key={day.key} value={String(day.key)}>{day.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                            }
                             </div>
+                         </div>
+                         <div className="pt-4 border-t mt-4">
+                            <Button onClick={handlePrint} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
+                                <Printer className="mr-2 h-4 w-4" />Stampa / Salva PDF
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -337,6 +335,3 @@ const DayPrintView = ({ dayKey, data }: { dayKey: number, data: Config }) => {
         </div>
     );
 };
-
-
-    

@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { initialData as mockData, Gym, Team, Session, Config, AppData } from '@/lib/teamup';
-import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard, Hourglass, Percent } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Progress } from '@/components/ui/progress';
 
 
 function getWeeksBetween(d1: Date, d2: Date) {
@@ -100,6 +101,8 @@ export default function DashboardPage() {
             { name: 'Stagionale', 'Ore Disponibili': totalHoursAvailablePerSeason, 'Ore Richieste': totalHoursRequiredPerSeason }
         ];
 
+        const usagePercentage = totalHoursAvailablePerWeek > 0 ? (totalHoursRequiredPerWeek / totalHoursAvailablePerWeek) * 100 : 0;
+
         return {
             numGyms,
             numTeams,
@@ -112,6 +115,7 @@ export default function DashboardPage() {
             gymDetails,
             weeklyChartData,
             seasonalChartData,
+            usagePercentage
         };
     }, [data]);
 
@@ -128,7 +132,7 @@ export default function DashboardPage() {
 
             <main className="p-4 md:p-8">
                 {/* General Stats */}
-                <div className="grid gap-4 md:grid-cols-3 mb-8">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-8">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Palestre</CardTitle>
@@ -149,11 +153,39 @@ export default function DashboardPage() {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Allenamenti Totali</CardTitle>
+                            <CardTitle className="text-sm font-medium">Allenamenti Settimanali</CardTitle>
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.numSessions}</div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Ore Richieste / Sett.</CardTitle>
+                            <Hourglass className="h-4 w-4 text-destructive" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.totalHoursRequiredPerWeek.toFixed(2)} h</div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Ore Disponibili / Sett.</CardTitle>
+                            <Hourglass className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.totalHoursAvailablePerWeek.toFixed(2)} h</div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Utilizzo Risorse</CardTitle>
+                             <Percent className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold mb-2">{stats.usagePercentage.toFixed(1)}%</div>
+                            <Progress value={stats.usagePercentage} className="h-2"/>
                         </CardContent>
                     </Card>
                 </div>
@@ -161,8 +193,8 @@ export default function DashboardPage() {
                  {/* Resource Usage */}
                 <Card className="mb-8">
                     <CardHeader>
-                        <CardTitle>Utilizzo Risorse</CardTitle>
-                        <CardDescription>Confronto grafico tra ore disponibili e ore richieste.</CardDescription>
+                        <CardTitle>Utilizzo Risorse Grafico</CardTitle>
+                        <CardDescription>Confronto tra ore disponibili e ore richieste su base settimanale e stagionale.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-8 md:grid-cols-2">
                         <div className="flex flex-col">
@@ -174,8 +206,8 @@ export default function DashboardPage() {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Bar dataKey="Ore Disponibili" fill="#000080" />
-                                    <Bar dataKey="Ore Richieste" fill="#800000" />
+                                    <Bar dataKey="Ore Disponibili" fill="hsl(var(--primary))" />
+                                    <Bar dataKey="Ore Richieste" fill="hsl(var(--destructive))" />
                                 </BarChart>
                              </ResponsiveContainer>
                         </div>
@@ -188,8 +220,8 @@ export default function DashboardPage() {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Bar dataKey="Ore Disponibili" fill="#000080" />
-                                    <Bar dataKey="Ore Richieste" fill="#800000" />
+                                    <Bar dataKey="Ore Disponibili" fill="hsl(var(--primary))" />
+                                    <Bar dataKey="Ore Richieste" fill="hsl(var(--destructive))" />
                                 </BarChart>
                              </ResponsiveContainer>
                         </div>
@@ -201,13 +233,14 @@ export default function DashboardPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Dettaglio Squadre</CardTitle>
+                            <CardDescription>Riepilogo del carico di lavoro per ogni squadra.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Squadra</TableHead>
-                                        <TableHead>Sessioni</TableHead>
+                                        <TableHead>Allenamenti/Sett.</TableHead>
                                         <TableHead className="text-right">Ore/Settimana</TableHead>
                                         <TableHead className="text-right">Ore/Stagione</TableHead>
                                     </TableRow>
@@ -229,6 +262,7 @@ export default function DashboardPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Dettaglio Palestre</CardTitle>
+                             <CardDescription>Riepilogo delle ore disponibili per ogni struttura.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -255,3 +289,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    

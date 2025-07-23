@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Settings, LayoutDashboard, RefreshCw } from "lucide-react";
+import { Settings, LayoutDashboard, RefreshCw, Printer } from "lucide-react";
 
 export function Header({ onRefresh, configName }: { onRefresh: () => void, configName: string }) {
   return (
@@ -16,6 +16,12 @@ export function Header({ onRefresh, configName }: { onRefresh: () => void, confi
             <RefreshCw className="mr-2 h-4 w-4" />
             Aggiorna Dati
         </Button>
+         <Link href="/print">
+            <Button variant="outline">
+                <Printer className="mr-2 h-4 w-4" />
+                Stampa
+            </Button>
+        </Link>
         <Link href="/dashboard">
             <Button variant="outline">
                 <LayoutDashboard className="mr-2 h-4 w-4" />

@@ -86,3 +86,25 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Print-specific styles */
+@media print {
+  body {
+    background-color: #fff;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-container {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+}

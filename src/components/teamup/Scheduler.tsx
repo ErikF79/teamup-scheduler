@@ -91,11 +91,9 @@ export default function Scheduler() {
         const gym = appData.gyms.find(g => g.id === newGymId);
         const dayConfig = gym?.availability.find(d => d.key === newDay);
         const availabilitySlots = dayConfig?.slots || [];
+        const sessionEndMinutes = newStartTime + updatedSession.duration;
 
         if (gym && availabilitySlots.length > 0) {
-             const sessionEndMinutes = newStartTime + updatedSession.duration;
-
-             // New validation logic: check if every minute of the session falls within an available slot
              let isWithinAvailableSlot = true;
              for (let minute = newStartTime; minute < sessionEndMinutes; minute++) {
                  const isMinuteAvailable = availabilitySlots.some(slot => minute >= slot.start && minute < slot.end);
@@ -131,8 +129,6 @@ export default function Scheduler() {
             const new_start = newStartTime;
             const new_end = newStartTime + updatedSession.duration;
             
-            // Overlap happens if one session starts before the other ends
-            // and ends after the other starts.
             return new_start < s_end && new_end > s_start;
         });
 
@@ -472,10 +468,21 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     const dayAvailability = gym.availability.find(d => d.key === dayKey);
     const slots = dayAvailability?.slots || [];
+    const totalMinutesInView = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
     
-    const totalMinutes = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
-    const totalHeightInPx = totalMinutes / 15 * 24; // 24px per 15-min slot
+    // Create an array representing all 15-minute intervals in the view
+    const allIntervals = Array.from({length: totalMinutesInView / 15}, (_, i) => {
+        const start = MASTER_START_HOUR * 60 + i * 15;
+        const end = start + 15;
+        return { start, end };
+    });
 
+    // Determine which of these intervals are unavailable
+    const unavailableIntervals = allIntervals.filter(interval => 
+        !slots.some(slot => interval.start >= slot.start && interval.end <= slot.end)
+    );
+
+    const totalHeightInPx = allIntervals.length * 24; // 24px per 15-min slot
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -490,8 +497,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         
         if (contentRect.height <= 0) return;
 
-        const minutesFromCellTop = (dropY / contentRect.height) * totalMinutes;
-        const snappedMinutes = Math.round(minutesFromCellTop / 15) * 15;
+        const minutesFromCellTop = (dropY / contentRect.height) * totalMinutesInView;
+        const snappedMinutes = Math.floor(minutesFromCellTop / 15) * 15;
         const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
 
         moveSession(sessionId, gym.id, dayKey, newStartTime);
@@ -508,25 +515,30 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     return (
         <div
-            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-muted/20"
+            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-background"
             style={{ height: `${totalHeightInPx}px` }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
         >
-            {/* Background masks for unavailable times */}
+            {/* Grid lines */}
             <div className="absolute inset-0 z-0 pointer-events-none">
-                {/* Available slots */}
-                {slots.map((slot, index) => {
-                    const top = ((slot.start - MASTER_START_HOUR * 60) / totalMinutes) * 100;
-                    const height = ((slot.end - slot.start) / totalMinutes) * 100;
+                 {allIntervals.map((_, i) => (
+                    <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-gray-300 dark:border-gray-700' : 'border-gray-200/70 dark:border-gray-800/70'}`}/>
+                ))}
+            </div>
+             {/* Background masks for unavailable times */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                {unavailableIntervals.map((interval, index) => {
+                    const top = ((interval.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
+                    const height = (15 / totalMinutesInView) * 100;
                     return (
-                        <div key={index} className="absolute w-full bg-background" style={{ top: `${top}%`, height: `${height}%` }}>
-                           {Array.from({length: Math.ceil((slot.end - slot.start)/15)}).map((_, i) => (
-                               <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-gray-300 dark:border-gray-700' : 'border-gray-200/70 dark:border-gray-800/70'}`}/>
-                           ))}
-                        </div>
-                    )
+                        <div 
+                            key={index} 
+                            className="absolute w-full bg-muted/50" 
+                            style={{ top: `${top}%`, height: `${height}%` }}
+                        />
+                    );
                 })}
             </div>
 
@@ -534,8 +546,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
             <div className="relative z-10 h-full">
                 {getSessionsByGymAndDay(gym.id, dayKey).map(session => {
                     if (session.startTime === null || session.duration <= 0) return null;
-                    const top = ((session.startTime - MASTER_START_HOUR * 60) / totalMinutes) * 100;
-                    const height = (session.duration / totalMinutes) * 100;
+                    const top = ((session.startTime - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
+                    const height = (session.duration / totalMinutesInView) * 100;
 
                     if (top < 0 || top >= 100) return null;
 

@@ -190,7 +190,7 @@ function Scheduler() {
   }
   
   return (
-    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, setPlacingSessionInfo, placingSessionInfo }}>
+    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, placingSessionInfo, setPlacingSessionInfo }}>
         <Header onRefresh={reloadData} />
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
@@ -225,8 +225,8 @@ const useScrollToTime = (scrollAreaRef: React.RefObject<HTMLDivElement>) => {
     if (scrollAreaRef.current) {
         // Calculate the pixel position for MASTER_START_HOUR
         // Each hour has 4 slots (15 mins each), and each slot is TIME_SLOT_HEIGHT_PX high.
-        const scrollToPixel = MASTER_START_HOUR * 4 * TIME_SLOT_HEIGHT_PX;
-        scrollAreaRef.current.scrollTo({ top: scrollToPixel, behavior: 'smooth' });
+        const scrollToPixel = (MASTER_START_HOUR * 4) * TIME_SLOT_HEIGHT_PX;
+        scrollAreaRef.current.scrollTo({ top: scrollToPixel, behavior: 'auto' });
     }
   }, [scrollAreaRef]);
 };
@@ -237,19 +237,27 @@ function GymViewScheduler() {
     const scrollRef = useRef<HTMLDivElement>(null);
     useScrollToTime(scrollRef);
     
+    if (!gyms || gyms.length === 0) {
+        return <div className="text-center text-muted-foreground pt-10">Nessuna palestra definita. Vai al pannello Admin per aggiungerne una.</div>;
+    }
+    
     return (
-        <ScrollArea className="flex-grow h-full pr-4" ref={scrollRef}>
-            <div className="space-y-6">
-            {gyms.map(gym => (
-                <div key={gym.id} id={gym.id} className="scroll-mt-4">
-                <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
-                    <Building2 className="text-primary"/> {gym.name}
-                </h2>
-                <GymScheduleGrid gym={gym} />
-                </div>
-            ))}
-            </div>
-      </ScrollArea>
+        <Tabs defaultValue={gyms[0].id} className="flex-grow flex flex-col h-full overflow-hidden">
+             <div className="flex-shrink-0 pb-4">
+                <TabsList>
+                    {gyms.map(gym => (
+                        <TabsTrigger key={gym.id} value={gym.id}>{gym.name}</TabsTrigger>
+                    ))}
+                </TabsList>
+             </div>
+            <ScrollArea className="flex-grow h-full" ref={scrollRef}>
+                 {gyms.map(gym => (
+                    <TabsContent key={gym.id} value={gym.id} className="h-full">
+                        <GymScheduleGrid gym={gym} />
+                    </TabsContent>
+                ))}
+            </ScrollArea>
+        </Tabs>
     )
 }
 
@@ -272,6 +280,10 @@ function DayViewScheduler() {
         }
         return slots;
     }, []);
+    
+     if (!gyms || gyms.length === 0) {
+        return <div className="text-center text-muted-foreground pt-10">Nessuna palestra definita. Vai al pannello Admin per aggiungerne una.</div>;
+    }
     
     return (
          <Tabs defaultValue="1" className="flex-grow flex flex-col h-full overflow-hidden">

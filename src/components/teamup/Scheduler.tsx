@@ -94,6 +94,7 @@ export default function Scheduler() {
         const sessionEndMinutes = newStartTime + updatedSession.duration;
 
         if (gym && availabilitySlots.length > 0) {
+             // Check if every minute of the session falls within an available slot
              let isWithinAvailableSlot = true;
              for (let minute = newStartTime; minute < sessionEndMinutes; minute++) {
                  const isMinuteAvailable = availabilitySlots.some(slot => minute >= slot.start && minute < slot.end);
@@ -106,7 +107,7 @@ export default function Scheduler() {
              if (!isWithinAvailableSlot) {
                  toast({
                     title: "Orario non valido!",
-                    description: "La sessione è fuori dagli orari disponibili o si estende su una fascia non disponibile.",
+                    description: "La sessione è fuori dagli orari disponibili della palestra.",
                     variant: "destructive"
                 });
                 return false;
@@ -498,7 +499,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         if (contentRect.height <= 0) return;
 
         const minutesFromCellTop = (dropY / contentRect.height) * totalMinutesInView;
-        const snappedMinutes = Math.floor(minutesFromCellTop / 15) * 15;
+        const snappedMinutes = Math.round(minutesFromCellTop / 15) * 15;
         const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
 
         moveSession(sessionId, gym.id, dayKey, newStartTime);
@@ -515,8 +516,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     return (
         <div
-            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-background"
-            style={{ height: `${totalHeightInPx}px` }}
+            className="row-start-2 col-start-auto relative border-b border-l transition-colors"
+            style={{ height: `${totalHeightInPx}px`, backgroundColor: '#FFFFFF' }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -623,3 +624,4 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
 
 
     
+

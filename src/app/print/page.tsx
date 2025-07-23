@@ -97,7 +97,7 @@ export default function PrintPage() {
                     <Printer /> Stampa Palinsesto
                 </h1>
                 <div className="flex items-center gap-2">
-                    <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Stampa Pagina</Button>
+                    <Button onClick={handlePrint} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900"><Printer className="mr-2 h-4 w-4" />Stampa Pagina</Button>
                     <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
                 </div>
             </header>
@@ -329,3 +329,5 @@ const DayPrintView = ({ dayKey, data }: { dayKey: number, data: Config }) => {
         </div>
     );
 };
+
+    

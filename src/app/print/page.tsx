@@ -108,7 +108,7 @@ export default function PrintPage() {
                         <CardTitle>Opzioni di Stampa</CardTitle>
                         <CardDescription>Scegli cosa vuoi visualizzare. Il contenuto verrà generato qui sotto in un formato A4, pronto per la stampa o il salvataggio in PDF.</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
+                    <CardContent>
                         <div className="flex items-end gap-4">
                             <div>
                                 <label className="text-sm font-medium mb-1 block">Tipo di Vista</label>
@@ -157,7 +157,7 @@ export default function PrintPage() {
                             }
                             </div>
                         </div>
-                         <div className="flex items-center gap-2 pt-4 border-t">
+                         <div className="flex items-center gap-2 pt-4 border-t mt-4">
                             <Button onClick={handlePrint} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
                                 <Printer className="mr-2 h-4 w-4" />Stampa / Salva PDF
                             </Button>

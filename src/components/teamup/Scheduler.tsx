@@ -4,7 +4,7 @@
 import React, { useState, createContext, useContext, useEffect, useMemo, useCallback } from 'react';
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, GripVertical, Users, CalendarDays, Eye, Clock } from 'lucide-react';
+import { Building2, GripVertical, Users, CalendarDays, Eye, Clock, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { Header } from "@/components/teamup/Header";
 
 
 // --- CONSTANTS ---
-const MASTER_START_HOUR = 9;
+const MASTER_START_HOUR = 15;
 const MASTER_END_HOUR = 23;
 const TOTAL_MASTER_MINUTES = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
 const DAYS_OF_WEEK = [
@@ -240,15 +240,20 @@ function GymViewScheduler() {
 function DayViewScheduler() {
     const { gyms, sessions } = useScheduler();
 
-    const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) * 4 }, (_, i) => {
-        const totalMinutes = MASTER_START_HOUR * 60 + i * 15;
-        const hour = Math.floor(totalMinutes / 60);
-        const minute = totalMinutes % 60;
-        if (minute === 0) {
-            return { time: `${hour.toString().padStart(2, '0')}:00`, isHour: true };
+    const timeSlots = useMemo(() => {
+        const slots = [];
+        for (let h = 0; h < 24; h++) {
+             for (let m = 0; m < 60; m += 15) {
+                const totalMinutes = h * 60 + m;
+                if (m === 0) {
+                     slots.push({ totalMinutes, time: `${h.toString().padStart(2, '0')}:00`, isHour: true });
+                } else {
+                     slots.push({ totalMinutes, time: `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, isHour: false });
+                }
+             }
         }
-        return { time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`, isHour: false };
-    }), []);
+        return slots;
+    }, []);
     
     return (
          <Tabs defaultValue="1" className="flex-grow flex flex-col h-full overflow-hidden">
@@ -366,12 +371,12 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleClick}
-            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card px-2 mx-1 ${isDraggable ? cursorClass : ''}`}
+            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card px-2 py-1 mx-1 ${isDraggable ? cursorClass : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
-            {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 mt-2" />}
-            <div className="flex flex-col w-full py-1">
+            {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 mt-1" />}
+            <div className="flex flex-col w-full">
                 <p className="font-bold text-sm text-card-foreground">{team?.name}</p>
                 {isPlaced && (
                      <p className="text-xs font-semibold text-primary flex items-center gap-1">
@@ -429,7 +434,7 @@ const UnassignedSessionsColumn = () => {
       <ScrollArea>
         <CardContent className="p-4 space-y-3">
           {unassignedSessions.length > 0 ? (
-              unassignedSessions.map(session => <SessionCard key={session.id} session={session} />)
+              unassignedSessions.map(session => <div key={session.id} className="h-16"><SessionCard session={session} /></div>)
           ) : (
               <div className="text-center text-muted-foreground pt-10">Tutte le sessioni sono state pianificate!</div>
           )}
@@ -442,15 +447,20 @@ const UnassignedSessionsColumn = () => {
 // --- GYM SCHEDULE GRID (WEEK VIEW) ---
 const GymScheduleGrid = ({ gym, allSessions }: { gym: Gym, allSessions: Session[] }) => {
     
-    const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) * 4 }, (_, i) => {
-        const totalMinutes = MASTER_START_HOUR * 60 + i * 15;
-        const hour = Math.floor(totalMinutes / 60);
-        const minute = totalMinutes % 60;
-        if (minute === 0) {
-            return { time: `${hour.toString().padStart(2, '0')}:00`, isHour: true };
+    const timeSlots = useMemo(() => {
+        const slots = [];
+        for (let h = 0; h < 24; h++) {
+             for (let m = 0; m < 60; m += 15) {
+                const totalMinutes = h * 60 + m;
+                if (m === 0) {
+                     slots.push({ totalMinutes, time: `${h.toString().padStart(2, '0')}:00`, isHour: true });
+                } else {
+                     slots.push({ totalMinutes, time: `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, isHour: false });
+                }
+             }
         }
-        return { time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`, isHour: false };
-    }), []);
+        return slots;
+    }, []);
 
 
     return (
@@ -498,16 +508,17 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     const dayAvailability = gym.availability.find(d => d.key === dayKey);
     const slots = dayAvailability?.slots || [];
-    const totalMinutesInView = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
+    const totalMinutesInView = 24 * 60; // Full day
     
-    const allIntervals = Array.from({length: totalMinutesInView / 15}, (_, i) => {
-        const start = MASTER_START_HOUR * 60 + i * 15;
+    const allIntervals = useMemo(() => Array.from({length: totalMinutesInView / 15}, (_, i) => {
+        const start = i * 15;
         const end = start + 15;
         return { start, end };
-    });
+    }), [totalMinutesInView]);
 
-    const totalHeightInPx = allIntervals.length * 24; // 24px per 15-min slot
 
+    const totalHeightInPx = allIntervals.length * 6; // h-6 -> 1.5rem -> 24px per 15min. But it is h-6 -> 6px. No, h-6 is 1.5rem which is 24px. The grid has 96 slots per hour (4*24px=96px/hr). Total height is 24 * 96 = 2304px
+    
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         const sessionId = e.dataTransfer.getData('sessionId');
@@ -529,8 +540,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     return (
         <div
-            className="row-start-2 col-start-auto relative border-b border-l transition-colors"
-            style={{ height: `${totalHeightInPx}px`, background: 'white' }}
+            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-white"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -545,7 +555,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
              {/* Background for available times */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 {slots.map((slot, index) => {
-                    const top = ((slot.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
+                    const top = (slot.start / totalMinutesInView) * 100;
                     const height = ((slot.end - slot.start) / totalMinutesInView) * 100;
                     return (
                         <div 
@@ -563,7 +573,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                     const isAvailable = slots.some(slot => interval.start >= slot.start && interval.end <= slot.end);
                     if (isAvailable) return null;
 
-                    const top = ((interval.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
+                    const top = (interval.start / totalMinutesInView) * 100;
                     const height = (15 / totalMinutesInView) * 100;
                     
                     return (
@@ -585,7 +595,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
             <div className="relative z-10 h-full">
                 {getSessionsByGymAndDay(gym.id, dayKey).map(session => {
                     if (session.startTime === null || session.duration <= 0) return null;
-                    const top = ((session.startTime - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
+                    const top = (session.startTime / totalMinutesInView) * 100;
                     const height = (session.duration / totalMinutesInView) * 100;
 
                     if (top < 0 || top >= 100) return null;
@@ -717,4 +727,5 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
     
 
     
+
 

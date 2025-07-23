@@ -47,12 +47,12 @@ const teamColors: { [key: string]: string } = {
 };
 
 const createDefaultAvailability = (): DayAvailability[] => [
-    { key: 1, name: 'Lunedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
-    { key: 2, name: 'Martedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
-    { key: 3, name: 'Mercoledì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
-    { key: 4, name: 'Giovedì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
-    { key: 5, name: 'Venerdì', slots: [{ start: 17 * 60, end: 23 * 60 }] },
-    { key: 6, name: 'Sabato', slots: [{ start: 14 * 60, end: 20 * 60 }] },
+    { key: 1, name: 'Lunedì', slots: [{ start: 15 * 60 + 30, end: 23 * 60 }] },
+    { key: 2, name: 'Martedì', slots: [{ start: 15 * 60 + 30, end: 23 * 60 }] },
+    { key: 3, name: 'Mercoledì', slots: [{ start: 15 * 60 + 30, end: 23 * 60 }] },
+    { key: 4, name: 'Giovedì', slots: [{ start: 15 * 60 + 30, end: 23 * 60 }] },
+    { key: 5, name: 'Venerdì', slots: [{ start: 15 * 60 + 30, end: 23 * 60 }] },
+    { key: 6, name: 'Sabato', slots: [{ start: 9 * 60, end: 20 * 60 }] },
     { key: 7, name: 'Domenica', slots: [{ start: 9 * 60, end: 20 * 60 }] },
 ];
 
@@ -103,3 +103,4 @@ export const initialData = {
     sessions,
     teamColors,
 };
+

@@ -483,7 +483,11 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         const end = start + 15;
         return { start, end };
     });
-
+    
+    const availableIntervals = allIntervals.filter(interval => 
+        slots.some(slot => interval.start >= slot.start && interval.end <= slot.end)
+    );
+    
     const unavailableIntervals = allIntervals.filter(interval => 
         !slots.some(slot => interval.start >= slot.start && interval.end <= slot.end)
     );
@@ -522,7 +526,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     return (
         <div
             className="row-start-2 col-start-auto relative border-b border-l transition-colors"
-            style={{ height: `${totalHeightInPx}px`, background: 'hsl(130, 70%, 95%)' }}
+            style={{ height: `${totalHeightInPx}px`, background: 'white' }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -533,14 +537,29 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                     <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-border' : 'border-border/50'}`}/>
                 ))}
             </div>
-             {/* Background masks for unavailable times */}
+             {/* Background for available times */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                {availableIntervals.map((interval, index) => {
+                    const top = ((interval.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
+                    const height = (15 / totalMinutesInView) * 100;
+                    return (
+                        <div 
+                            key={`available-${index}`} 
+                            className="absolute w-full" 
+                            style={{ top: `${top}%`, height: `${height}%`, background: 'hsl(130, 70%, 95%)' }}
+                        />
+                    );
+                })}
+            </div>
+
+            {/* Background masks for unavailable times */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 {unavailableIntervals.map((interval, index) => {
                     const top = ((interval.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
                     const height = (15 / totalMinutesInView) * 100;
                     return (
                         <div 
-                            key={index} 
+                            key={`unavailable-${index}`} 
                             className="absolute w-full bg-[repeating-linear-gradient(45deg,hsl(var(--muted)/0.4),hsl(var(--muted)/0.4)_4px,transparent_4px,transparent_10px)]" 
                             style={{ top: `${top}%`, height: `${height}%`, backgroundSize: '10px 10px' }}
                         />

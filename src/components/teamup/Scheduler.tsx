@@ -28,6 +28,14 @@ const DAYS_OF_WEEK = [
     { key: 7, name: 'Domenica' },
 ];
 
+// --- TYPES ---
+interface PlacingSessionInfo {
+    sessionId: string;
+    gymId: string;
+    dayKey: number;
+}
+
+
 // --- CONTEXT ---
 interface SchedulerContextType {
   sessions: Session[];
@@ -38,6 +46,7 @@ interface SchedulerContextType {
   getSessionsByGymAndDay: (gymId: string, day: number) => Session[];
   getUnassignedSessions: () => Session[];
   setEditingSession: (session: Session | null) => void;
+  setPlacingSessionInfo: (info: PlacingSessionInfo | null) => void;
 }
 
 const SchedulerContext = createContext<SchedulerContextType | null>(null);
@@ -55,6 +64,7 @@ export default function Scheduler() {
   const { toast } = useToast();
   const [appData, setAppData] = useState(mockData);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [placingSessionInfo, setPlacingSessionInfo] = useState<PlacingSessionInfo | null>(null);
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -82,7 +92,7 @@ export default function Scheduler() {
 
 
   const moveSession = (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null): boolean => {
-    let sessionToMove = appData.sessions.find(s => s.id === sessionId);
+    const sessionToMove = appData.sessions.find(s => s.id === sessionId);
     if (!sessionToMove) return false;
 
     // If un-assigning, just do it.
@@ -94,33 +104,24 @@ export default function Scheduler() {
         toast({ title: "Sessione rimossa dal calendario" });
         return true;
     }
-
+    
     const sessionEndMinutes = newStartTime + sessionToMove.duration;
 
     // --- VALIDATION 1: Check Gym Availability ---
     const gym = appData.gyms.find(g => g.id === newGymId);
     if (!gym) return false;
+    
     const dayConfig = gym.availability.find(d => d.key === newDay);
-    const availabilitySlots = dayConfig?.slots || [];
+    if (!dayConfig) return false;
     
-    // Check if the entire session duration falls within one or more available slots
-    let minutesCovered = 0;
-    for(let i = 0; i < sessionToMove.duration; i++) {
-        const minuteToCheck = newStartTime + i;
-        const isInSlot = availabilitySlots.some(slot => minuteToCheck >= slot.start && minuteToCheck < slot.end);
-        if (isInSlot) {
-            minutesCovered++;
-        }
-    }
-    
-    // The last minute of the session (e.g. at 18:30 for a 90min session starting at 17:00) should be inside an availability slot.
-    // A session from 17:00 to 18:30 ends at 18:29:59. The minute 18:30 is the start of the next slot.
-    const isWithinAvailableSlot = minutesCovered >= sessionToMove.duration;
+    const isWithinAvailableSlot = dayConfig.slots.some(slot =>
+        newStartTime >= slot.start && sessionEndMinutes <= slot.end
+    );
 
     if (!isWithinAvailableSlot) {
         toast({
             title: "Orario non valido!",
-            description: "La sessione è fuori dagli orari di disponibilità della palestra o a cavallo di più fasce.",
+            description: "La sessione non rientra completamente in una fascia oraria disponibile per la palestra.",
             variant: "destructive"
         });
         return false;
@@ -128,13 +129,11 @@ export default function Scheduler() {
 
     // --- VALIDATION 2: Check for Collisions ---
     const collision = appData.sessions.some(s => {
-        // Skip self and unassigned sessions
         if (s.id === sessionId || s.gymId !== newGymId || s.day !== newDay || s.startTime === null) {
             return false;
         }
         const s_start = s.startTime;
         const s_end = s.startTime + s.duration;
-        // Check for any overlap: new session starts before other ends, and new session ends after other starts
         return newStartTime < s_end && sessionEndMinutes > s_start;
     });
 
@@ -168,7 +167,7 @@ export default function Scheduler() {
   }
   
   return (
-    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession }}>
+    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, setPlacingSessionInfo }}>
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
              <div className="flex-grow flex flex-col h-full overflow-hidden">
@@ -190,6 +189,7 @@ export default function Scheduler() {
             </div>
         </div>
         {editingSession && <EditSessionDialog session={editingSession} />}
+        {placingSessionInfo && <PlaceSessionDialog />}
     </SchedulerContext.Provider>
   );
 };
@@ -472,7 +472,7 @@ interface DayGymScheduleCellProps {
     dayKey: number;
 }
 const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
-    const { getSessionsByGymAndDay, moveSession } = useScheduler();
+    const { getSessionsByGymAndDay, setPlacingSessionInfo } = useScheduler();
     
     const dayAvailability = gym.availability.find(d => d.key === dayKey);
     const slots = dayAvailability?.slots || [];
@@ -483,35 +483,17 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         const end = start + 15;
         return { start, end };
     });
-    
-    const availableIntervals = allIntervals.filter(interval => 
-        slots.some(slot => interval.start >= slot.start && interval.end <= slot.end)
-    );
-    
-    const unavailableIntervals = allIntervals.filter(interval => 
-        !slots.some(slot => interval.start >= slot.start && interval.end <= slot.end)
-    );
 
     const totalHeightInPx = allIntervals.length * 24; // 24px per 15-min slot
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         const sessionId = e.dataTransfer.getData('sessionId');
-        const target = e.currentTarget;
-        target.classList.remove('bg-accent/10');
+        e.currentTarget.classList.remove('bg-accent/10');
         
         if (!sessionId) return;
-
-        const contentRect = target.getBoundingClientRect();
-        const dropY = e.clientY - contentRect.top;
         
-        if (contentRect.height <= 0) return;
-
-        const minutesFromCellTop = (dropY / contentRect.height) * totalMinutesInView;
-        const snappedMinutes = Math.floor(minutesFromCellTop / 15) * 15;
-        const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
-
-        moveSession(sessionId, gym.id, dayKey, newStartTime);
+        setPlacingSessionInfo({ sessionId, gymId: gym.id, dayKey });
     };
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -531,37 +513,23 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
         >
-            {/* Grid lines */}
+             {/* Grid lines */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                  {allIntervals.map((_, i) => (
                     <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-border' : 'border-border/50'}`}/>
                 ))}
             </div>
-             {/* Background for available times */}
+
+            {/* Background for available times */}
             <div className="absolute inset-0 z-0 pointer-events-none">
-                {availableIntervals.map((interval, index) => {
-                    const top = ((interval.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
-                    const height = (15 / totalMinutesInView) * 100;
+                {slots.map((slot, index) => {
+                    const top = ((slot.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
+                    const height = ((slot.end - slot.start) / totalMinutesInView) * 100;
                     return (
                         <div 
                             key={`available-${index}`} 
                             className="absolute w-full" 
                             style={{ top: `${top}%`, height: `${height}%`, background: 'hsl(130, 70%, 95%)' }}
-                        />
-                    );
-                })}
-            </div>
-
-            {/* Background masks for unavailable times */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
-                {unavailableIntervals.map((interval, index) => {
-                    const top = ((interval.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
-                    const height = (15 / totalMinutesInView) * 100;
-                    return (
-                        <div 
-                            key={`unavailable-${index}`} 
-                            className="absolute w-full bg-[repeating-linear-gradient(45deg,hsl(var(--muted)/0.4),hsl(var(--muted)/0.4)_4px,transparent_4px,transparent_10px)]" 
-                            style={{ top: `${top}%`, height: `${height}%`, backgroundSize: '10px 10px' }}
                         />
                     );
                 })}
@@ -587,7 +555,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     );
 };
 
-// --- EDIT SESSION DIALOG ---
+// --- DIALOGS ---
+
 interface EditSessionDialogProps {
     session: Session;
 }
@@ -639,6 +608,60 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
     )
 }
 
-    
+function PlaceSessionDialog() {
+    const { teams, sessions, setPlacingSessionInfo, moveSession, gyms } = useScheduler();
+    const [newTime, setNewTime] = useState("17:00");
 
+    // This is safe because this component is only rendered when placingSessionInfo is not null
+    const { sessionId, gymId, dayKey } = useContext(SchedulerContext)!.placingSessionInfo!; 
     
+    const session = sessions.find(s => s.id === sessionId);
+    const team = session ? teams.find(t => t.id === session.teamId) : null;
+    const gym = gyms.find(g => g.id === gymId);
+    const day = DAYS_OF_WEEK.find(d => d.key === dayKey);
+
+
+    const handleSave = () => {
+        const newStartTime = timeToMinutes(newTime);
+        if (newStartTime !== null) {
+           const success = moveSession(sessionId, gymId, dayKey, newStartTime);
+           if (success) {
+               setPlacingSessionInfo(null);
+           }
+        }
+    }
+    
+    const handleClose = () => setPlacingSessionInfo(null);
+
+    if (!session || !team || !gym || !day) return null;
+
+    return (
+         <Dialog open={true} onOpenChange={handleClose}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Inserisci Orario Sessione</DialogTitle>
+                    <DialogDescription>
+                        Stai assegnando <strong>{team.name}</strong> ({session.duration} min) a <strong>{gym.name}</strong> per <strong>{day.name}</strong>.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="start-time" className="text-right">Orario di Inizio</Label>
+                        <Input
+                            id="start-time"
+                            type="time"
+                            step="900" // 15 minuti
+                            value={newTime}
+                            onChange={(e) => setNewTime(e.target.value)}
+                            className="col-span-3"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={handleClose}>Annulla</Button>
+                    <Button onClick={handleSave}>Salva e Posiziona</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}

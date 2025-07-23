@@ -221,7 +221,7 @@ function GymViewScheduler() {
 }
 
 function DayViewScheduler() {
-    const { gyms } = useScheduler();
+    const { gyms, getSessionsByGymAndDay } = useScheduler();
 
     const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) * 4 }, (_, i) => {
         const totalMinutes = MASTER_START_HOUR * 60 + i * 15;
@@ -250,20 +250,55 @@ function DayViewScheduler() {
                     </div>
                     {/* Gym Headers */}
                     {gyms.map(gym => {
-                        const totalAvailableMinutes = DAYS_OF_WEEK.reduce((total, day) => {
-                            const dayConfig = gym.availability.find(d => d.key === day.key);
-                            const dayMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
-                            return total + dayMinutes;
-                        }, 0);
-                        const totalHours = (totalAvailableMinutes / 60).toFixed(1);
-
                         return (
-                            <div key={gym.id} className="col-span-1 h-12 flex flex-col items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
-                                 <span>{gym.name}</span>
-                                <span className="font-normal text-xs text-muted-foreground">{totalHours}h libere</span>
-                            </div>
+                             <TabsContent key={gym.id} value="1" className="contents">
+                                <DayHeaderCell gym={gym} dayKey={1} />
+                            </TabsContent>
                         )
                     })}
+                     {gyms.map(gym => {
+                        return (
+                             <TabsContent key={gym.id} value="2" className="contents">
+                                <DayHeaderCell gym={gym} dayKey={2} />
+                            </TabsContent>
+                        )
+                    })}
+                     {gyms.map(gym => {
+                        return (
+                             <TabsContent key={gym.id} value="3" className="contents">
+                                <DayHeaderCell gym={gym} dayKey={3} />
+                            </TabsContent>
+                        )
+                    })}
+                     {gyms.map(gym => {
+                        return (
+                             <TabsContent key={gym.id} value="4" className="contents">
+                                <DayHeaderCell gym={gym} dayKey={4} />
+                            </TabsContent>
+                        )
+                    })}
+                     {gyms.map(gym => {
+                        return (
+                             <TabsContent key={gym.id} value="5" className="contents">
+                                <DayHeaderCell gym={gym} dayKey={5} />
+                            </TabsContent>
+                        )
+                    })}
+                     {gyms.map(gym => {
+                        return (
+                             <TabsContent key={gym.id} value="6" className="contents">
+                                <DayHeaderCell gym={gym} dayKey={6} />
+                            </TabsContent>
+                        )
+                    })}
+                     {gyms.map(gym => {
+                        return (
+                             <TabsContent key={gym.id} value="7" className="contents">
+                                <DayHeaderCell gym={gym} dayKey={7} />
+                            </TabsContent>
+                        )
+                    })}
+
 
                     {/* Time Slots Column */}
                     <div className="row-start-2 col-start-1 bg-card border-r sticky left-0 z-10">
@@ -284,6 +319,21 @@ function DayViewScheduler() {
             </ScrollArea>
         </Tabs>
     )
+}
+
+function DayHeaderCell({ gym, dayKey }: { gym: Gym; dayKey: number }) {
+  const { getSessionsByGymAndDay } = useScheduler();
+  const dayConfig = gym.availability.find(d => d.key === dayKey);
+  const totalAvailableMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
+  const scheduledMinutes = getSessionsByGymAndDay(gym.id, dayKey).reduce((sum, session) => sum + session.duration, 0);
+  const remainingHours = ((totalAvailableMinutes - scheduledMinutes) / 60).toFixed(1);
+
+  return (
+    <div className="col-span-1 h-12 flex flex-col items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
+      <span>{gym.name}</span>
+      <span className="font-normal text-xs text-muted-foreground">{remainingHours}h libere</span>
+    </div>
+  );
 }
 
 
@@ -343,7 +393,7 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleClick}
-            className={`p-2 rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card mx-1 ${isDraggable ? cursorClass : ''}`}
+            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card mx-1 py-1 px-2 ${isDraggable ? cursorClass : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
@@ -418,6 +468,7 @@ const UnassignedSessionsColumn = () => {
 
 // --- GYM SCHEDULE GRID (WEEK VIEW) ---
 const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
+    const { getSessionsByGymAndDay } = useScheduler();
     
     const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) * 4 }, (_, i) => {
         const totalMinutes = MASTER_START_HOUR * 60 + i * 15;
@@ -441,13 +492,14 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                     {/* Day Headers */}
                     {DAYS_OF_WEEK.map(day => {
                         const dayConfig = gym.availability.find(d => d.key === day.key);
-                        const totalMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
-                        const totalHours = (totalMinutes / 60).toFixed(1);
+                        const totalAvailableMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
+                        const scheduledMinutes = getSessionsByGymAndDay(gym.id, day.key).reduce((sum, session) => sum + session.duration, 0);
+                        const remainingHours = ((totalAvailableMinutes - scheduledMinutes) / 60).toFixed(1);
 
                         return (
                              <div key={day.key} className="col-span-1 h-12 flex flex-col items-center justify-center border-b font-semibold text-center text-sm sticky top-0 bg-card z-10">
                                 <span>{day.name}</span>
-                                <span className="font-normal text-xs text-muted-foreground">{totalHours}h libere</span>
+                                <span className="font-normal text-xs text-muted-foreground">{remainingHours}h libere</span>
                             </div>
                         )
                     })}

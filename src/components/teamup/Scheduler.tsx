@@ -250,7 +250,7 @@ function DayViewScheduler() {
                     </div>
                     {/* Gym Headers */}
                     {gyms.map(gym => {
-                         const totalAvailableMinutes = DAYS_OF_WEEK.reduce((total, day) => {
+                        const totalAvailableMinutes = DAYS_OF_WEEK.reduce((total, day) => {
                             const dayConfig = gym.availability.find(d => d.key === day.key);
                             const dayMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
                             return total + dayMinutes;
@@ -343,7 +343,7 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleClick}
-            className={`p-2 rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card ${isDraggable ? cursorClass : ''}`}
+            className={`p-2 rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card mx-1 ${isDraggable ? cursorClass : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
@@ -527,7 +527,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                 ))}
             </div>
 
-            {/* Background for available times */}
+             {/* Background for available times */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 {slots.map((slot, index) => {
                     const top = ((slot.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
@@ -542,6 +542,30 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                 })}
             </div>
 
+            {/* Unavailable time patterns */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                {allIntervals.map(interval => {
+                    const isAvailable = slots.some(slot => interval.start >= slot.start && interval.end <= slot.end);
+                    if (isAvailable) return null;
+
+                    const top = ((interval.start - MASTER_START_HOUR * 60) / totalMinutesInView) * 100;
+                    const height = (15 / totalMinutesInView) * 100;
+                    
+                    return (
+                         <div 
+                            key={`unavailable-${interval.start}`} 
+                            className="absolute w-full" 
+                            style={{ 
+                                top: `${top}%`, 
+                                height: `${height}%`,
+                                backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, hsla(0,0%,0%,0.04) 4px, hsla(0,0%,0%,0.04) 8px))'
+                            }}
+                        />
+                    )
+                })}
+            </div>
+
+
             {/* Scheduled Sessions */}
             <div className="relative z-10 h-full">
                 {getSessionsByGymAndDay(gym.id, dayKey).map(session => {
@@ -552,7 +576,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                     if (top < 0 || top >= 100) return null;
 
                     return (
-                        <div key={session.id} className="absolute w-full px-1" style={{ top: `${top}%`, height: `${height}%` }}>
+                        <div key={session.id} className="absolute w-full" style={{ top: `${top}%`, height: `${height}%` }}>
                             <SessionCard session={session} isDraggable={true} />
                         </div>
                     );
@@ -674,5 +698,7 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
         </Dialog>
     )
 }
+
+    
 
     

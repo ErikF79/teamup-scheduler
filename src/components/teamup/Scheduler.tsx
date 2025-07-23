@@ -223,8 +223,10 @@ function Scheduler() {
 const useScrollToTime = (scrollAreaRef: React.RefObject<HTMLDivElement>) => {
   useEffect(() => {
     if (scrollAreaRef.current) {
-        // Calculate the pixel position for MASTER_START_HOUR
         // Each hour has 4 slots (15 mins each), and each slot is TIME_SLOT_HEIGHT_PX high.
+        // We want to scroll to MASTER_START_HOUR (e.g. 15:00)
+        // The total height of the grid is 24 * 4 * h = 96h
+        // The position of 15:00 is 15 * 4 * h = 60h
         const scrollToPixel = (MASTER_START_HOUR * 4) * TIME_SLOT_HEIGHT_PX;
         scrollAreaRef.current.scrollTo({ top: scrollToPixel, behavior: 'auto' });
     }
@@ -505,7 +507,9 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                     </div>
                     {/* Day Headers */}
                     {DAYS_OF_WEEK.map(day => (
-                        <DayHeaderCell key={day.key} gym={gym} dayKey={day.key} />
+                       <div key={day.key} className="col-span-1 h-12 flex flex-col items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
+                            <span>{day.name}</span>
+                        </div>
                     ))}
                     
                     {/* Time Slots Column */}

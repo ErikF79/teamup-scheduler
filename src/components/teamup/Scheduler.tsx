@@ -220,15 +220,11 @@ function Scheduler() {
 
 // --- VIEWS ---
 
-const useScrollToTime = (scrollAreaRef: React.RefObject<HTMLDivElement>) => {
+const useScrollToTime = (scrollAreaRef: React.RefObject<HTMLDivElement | null>) => {
   useEffect(() => {
     if (scrollAreaRef.current) {
-        // Each hour has 4 slots (15 mins each), and each slot is TIME_SLOT_HEIGHT_PX high.
-        // We want to scroll to MASTER_START_HOUR (e.g. 15:00)
-        // The total height of the grid is 24 * 4 * h = 96h
-        // The position of 15:00 is 15 * 4 * h = 60h
-        const scrollToPixel = (MASTER_START_HOUR * 4) * TIME_SLOT_HEIGHT_PX;
-        scrollAreaRef.current.scrollTo({ top: scrollToPixel, behavior: 'auto' });
+      const scrollToPixel = MASTER_START_HOUR * 4 * TIME_SLOT_HEIGHT_PX;
+      scrollAreaRef.current.scrollTo({ top: scrollToPixel, behavior: 'auto' });
     }
   }, [scrollAreaRef]);
 };

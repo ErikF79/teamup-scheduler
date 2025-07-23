@@ -102,10 +102,20 @@ export default function Scheduler() {
     if (!gym) return false;
     const dayConfig = gym.availability.find(d => d.key === newDay);
     const availabilitySlots = dayConfig?.slots || [];
-
-    const isWithinAvailableSlot = availabilitySlots.some(slot =>
-        newStartTime >= slot.start && sessionEndMinutes <= slot.end
-    );
+    
+    // Check if the entire session duration falls within one or more available slots
+    let minutesCovered = 0;
+    for(let i = 0; i < sessionToMove.duration; i++) {
+        const minuteToCheck = newStartTime + i;
+        const isInSlot = availabilitySlots.some(slot => minuteToCheck >= slot.start && minuteToCheck < slot.end);
+        if (isInSlot) {
+            minutesCovered++;
+        }
+    }
+    
+    // The last minute of the session (e.g. at 18:30 for a 90min session starting at 17:00) should be inside an availability slot.
+    // A session from 17:00 to 18:30 ends at 18:29:59. The minute 18:30 is the start of the next slot.
+    const isWithinAvailableSlot = minutesCovered >= sessionToMove.duration;
 
     if (!isWithinAvailableSlot) {
         toast({
@@ -124,7 +134,7 @@ export default function Scheduler() {
         }
         const s_start = s.startTime;
         const s_end = s.startTime + s.duration;
-        // Check for any overlap
+        // Check for any overlap: new session starts before other ends, and new session ends after other starts
         return newStartTime < s_end && sessionEndMinutes > s_start;
     });
 
@@ -512,7 +522,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     return (
         <div
             className="row-start-2 col-start-auto relative border-b border-l transition-colors"
-            style={{ height: `${totalHeightInPx}px`, background: '#FFFFFF' }}
+            style={{ height: `${totalHeightInPx}px`, background: 'hsl(130, 70%, 95%)' }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -609,5 +619,7 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
         </Dialog>
     )
 }
+
+    
 
     

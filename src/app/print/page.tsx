@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -94,11 +93,10 @@ export default function PrintPage() {
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
             <header className="flex items-center justify-between p-4 border-b bg-card no-print">
                 <h1 className="text-xl font-bold text-primary flex items-center gap-2">
-                    <Printer /> Stampa Palinsesto
+                    <Printer /> Stampa planner allenamenti
                 </h1>
                 <div className="flex items-center gap-2">
-                    <Button onClick={handlePrint} variant="outline"><Printer className="mr-2 h-4 w-4" />Stampa Pagina</Button>
-                    <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
+                     <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
                 </div>
             </header>
 
@@ -158,7 +156,7 @@ export default function PrintPage() {
                             </div>
                         </div>
                          <div className="flex items-center gap-2 pt-4 border-t mt-4">
-                            <Button onClick={handlePrint} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
+                             <Button onClick={handlePrint} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
                                 <Printer className="mr-2 h-4 w-4" />Stampa / Salva PDF
                             </Button>
                         </div>
@@ -323,7 +321,7 @@ const DayPrintView = ({ dayKey, data }: { dayKey: number, data: Config }) => {
                                         <TableCell className="font-medium">{team?.name}</TableCell>
                                         <TableCell className="text-right">{session.duration} min</TableCell>
                                     </TableRow>
-                                )
+                                 )
                             })}
                         </TableBody>
                     </Table>

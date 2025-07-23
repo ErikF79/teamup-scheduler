@@ -8,41 +8,59 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard, Plus, Trash } from "lucide-react";
+import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard, Plus, Trash, Save, FilePlus, Edit, TrashIcon } from "lucide-react";
 import Link from "next/link";
-import { initialData as mockData, Session, Gym, Team, DayAvailability, TimeSlot } from '@/lib/teamup';
+import { initialData as mockData, Session, Gym, Team, DayAvailability, TimeSlot, Config, AppData } from '@/lib/teamup';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast";
 
-type AppData = {
-    gyms: Gym[];
-    teams: Team[];
-    sessions: Session[];
-    teamColors: { [key: string]: string };
-}
 
 // --- Main Admin Page Component ---
 export default function AdminPage() {
-    const [data, setData] = useState<AppData>(mockData);
+    const [appData, setAppData] = useState<AppData>({ configurations: [mockData], activeConfigurationId: mockData.id });
+    const { toast } = useToast();
 
+    // --- Data Fetching ---
     const fetchData = useCallback(() => {
-         if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined') {
             const savedData = localStorage.getItem('teamup_data');
             try {
                 if (savedData) {
                     const parsedData = JSON.parse(savedData);
-                     if (parsedData.gyms && parsedData.teams && parsedData.sessions && parsedData.teamColors) {
-                        setData(parsedData);
+                    if (parsedData.configurations && parsedData.activeConfigurationId) {
+                        setAppData(parsedData);
+                        return;
                     }
                 }
             } catch (e) {
                 console.error("Failed to parse data from localStorage", e);
             }
         }
+        // Fallback to initial structure if nothing valid is found
+        setAppData({ configurations: [mockData], activeConfigurationId: mockData.id });
     }, []);
 
     useEffect(() => {
@@ -53,13 +71,32 @@ export default function AdminPage() {
     const [editingGymId, setEditingGymId] = useState<string | null>(null);
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
 
-    const updateData = (newData: Partial<AppData>) => {
-        const updatedData = { ...data, ...newData };
-        setData(updatedData);
+    const activeConfig = useMemo(() => {
+        return appData.configurations.find(c => c.id === appData.activeConfigurationId) || appData.configurations[0];
+    }, [appData]);
+
+
+    const updateData = (newConfigData: Partial<Omit<Config, 'id' | 'name'>>) => {
+        const newConfigurations = appData.configurations.map(c => {
+            if (c.id === appData.activeConfigurationId) {
+                return { ...c, ...newConfigData };
+            }
+            return c;
+        });
+        const newAppData = { ...appData, configurations: newConfigurations };
+        setAppData(newAppData);
         if (typeof window !== 'undefined') {
-            localStorage.setItem('teamup_data', JSON.stringify(updatedData));
+            localStorage.setItem('teamup_data', JSON.stringify(newAppData));
         }
     };
+    
+     const updateAppData = (newAppData: AppData) => {
+        setAppData(newAppData);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('teamup_data', JSON.stringify(newAppData));
+        }
+    };
+
 
     // --- Gym Handlers ---
     const handleAddGym = () => {
@@ -76,19 +113,19 @@ export default function AdminPage() {
                 { key: 7, name: 'Domenica', slots: [{ start: 9 * 60, end: 20 * 60 }] },
             ]
         };
-        updateData({ gyms: [...data.gyms, newGym] });
+        updateData({ gyms: [...activeConfig.gyms, newGym] });
     };
 
     const handleUpdateGym = (updatedGym: Gym) => {
-        updateData({ gyms: data.gyms.map(g => g.id === updatedGym.id ? updatedGym : g) });
+        updateData({ gyms: activeConfig.gyms.map(g => g.id === updatedGym.id ? updatedGym : g) });
         setEditingGymId(null);
     };
 
     const handleDeleteGym = (gymId: string) => {
         // Also remove sessions assigned to this gym
-        const newSessions = data.sessions.map(s => s.gymId === gymId ? { ...s, gymId: null, day: null, startTime: null } : s);
+        const newSessions = activeConfig.sessions.map(s => s.gymId === gymId ? { ...s, gymId: null, day: null, startTime: null } : s);
         updateData({
-            gyms: data.gyms.filter(g => g.id !== gymId),
+            gyms: activeConfig.gyms.filter(g => g.id !== gymId),
             sessions: newSessions
         });
     };
@@ -111,30 +148,30 @@ export default function AdminPage() {
             day: null,
             startTime: null,
         };
-        const newTeamColors = { ...data.teamColors, [newTeamId]: `hsl(${Math.random() * 360}, 70%, 50%)` };
+        const newTeamColors = { ...activeConfig.teamColors, [newTeamId]: `hsl(${Math.random() * 360}, 70%, 50%)` };
 
         updateData({
-            teams: [...data.teams, newTeam],
-            sessions: [...data.sessions, newSession],
+            teams: [...activeConfig.teams, newTeam],
+            sessions: [...activeConfig.sessions, newSession],
             teamColors: newTeamColors,
         });
     };
 
     const handleUpdateTeam = (updatedTeam: Team, teamSessions: Session[]) => {
         // Get all sessions that do NOT belong to the team being updated
-        const otherTeamsSessions = data.sessions.filter(s => s.teamId !== updatedTeam.id);
+        const otherTeamsSessions = activeConfig.sessions.filter(s => s.teamId !== updatedTeam.id);
         
         updateData({
-            teams: data.teams.map(t => (t.id === updatedTeam.id ? updatedTeam : t)),
+            teams: activeConfig.teams.map(t => (t.id === updatedTeam.id ? updatedTeam : t)),
             sessions: [...otherTeamsSessions, ...teamSessions],
         });
         setEditingTeamId(null);
     };
 
     const handleDeleteTeam = (teamId: string) => {
-        const newTeams = data.teams.filter(t => t.id !== teamId);
-        const newSessions = data.sessions.filter(s => s.teamId !== teamId);
-        const newTeamColors = { ...data.teamColors };
+        const newTeams = activeConfig.teams.filter(t => t.id !== teamId);
+        const newSessions = activeConfig.sessions.filter(s => s.teamId !== teamId);
+        const newTeamColors = { ...activeConfig.teamColors };
         delete newTeamColors[teamId];
 
         updateData({
@@ -147,10 +184,10 @@ export default function AdminPage() {
 
     // --- Import/Export Handlers ---
     const handleExport = () => {
-        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
+        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(appData, null, 2))}`;
         const link = document.createElement("a");
         link.href = jsonString;
-        link.download = "teamup_data.json";
+        link.download = "teamup_configurations.json";
         link.click();
     };
 
@@ -165,32 +202,85 @@ export default function AdminPage() {
                 if (typeof (text) === 'string') {
                     const parsedData = JSON.parse(text);
                     // Basic validation
-                    if (parsedData.gyms && parsedData.teams && parsedData.sessions && parsedData.teamColors) {
-                        updateData(parsedData);
+                    if (parsedData.configurations && parsedData.activeConfigurationId) {
+                        updateAppData(parsedData);
+                        toast({ title: "Importazione completata", description: "Le configurazioni sono state caricate." });
                     } else {
-                        alert("File JSON non valido.");
+                         toast({ title: "Errore", description: "File JSON non valido o malformato.", variant: "destructive" });
                     }
                 }
             } catch (error) {
-                alert("Errore nel parsing del file JSON.");
+                toast({ title: "Errore", description: "Errore nel parsing del file JSON.", variant: "destructive" });
                 console.error("Import error:", error);
             }
         };
         reader.readAsText(file);
     };
+    
+    // --- Configuration Handlers ---
+    const handleSetActiveConfig = (configId: string) => {
+        updateAppData({ ...appData, activeConfigurationId: configId });
+    }
+
+    const handleSaveAs = () => {
+        const newName = prompt("Inserisci un nome per la nuova configurazione:");
+        if (newName) {
+            const newConfig: Config = {
+                ...activeConfig,
+                id: `config-${Date.now()}`,
+                name: newName
+            };
+            const newAppData = {
+                configurations: [...appData.configurations, newConfig],
+                activeConfigurationId: newConfig.id
+            };
+            updateAppData(newAppData);
+            toast({ title: "Configurazione salvata", description: `Creata nuova configurazione "${newName}".` });
+        }
+    }
+    
+    const handleRename = () => {
+        const newName = prompt(`Inserisci il nuovo nome per "${activeConfig.name}":`, activeConfig.name);
+        if (newName) {
+            const newConfigurations = appData.configurations.map(c => 
+                c.id === activeConfig.id ? {...c, name: newName } : c
+            );
+            updateAppData({ ...appData, configurations: newConfigurations });
+            toast({ title: "Configurazione rinominata" });
+        }
+    }
+    
+    const handleDeleteConfig = () => {
+         if (appData.configurations.length <= 1) {
+             toast({ title: "Azione non consentita", description: "Non puoi eliminare l'unica configurazione esistente.", variant: "destructive" });
+            return;
+        }
+        const newConfigurations = appData.configurations.filter(c => c.id !== activeConfig.id);
+        const newActiveId = newConfigurations[0].id;
+        updateAppData({ configurations: newConfigurations, activeConfigurationId: newActiveId });
+        toast({ title: "Configurazione eliminata", description: `"${activeConfig.name}" è stata rimossa.` });
+    }
 
 
     return (
         <TooltipProvider>
             <div className="min-h-screen bg-background">
-                <header className="flex items-center justify-between p-4 border-b bg-card">
+                <header className="flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10">
                     <h1 className="text-xl font-bold text-primary">Admin Panel</h1>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Esporta</Button>
-                        <Label htmlFor="import-json" className="cursor-pointer">
-                            <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                               <Upload className="mr-2 h-4 w-4" /> Importa
-                            </div>
+                         <Tooltip>
+                            <TooltipTrigger asChild><Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Esporta Tutto</Button></TooltipTrigger>
+                            <TooltipContent><p>Esporta tutte le configurazioni in un unico file.</p></TooltipContent>
+                         </Tooltip>
+                         <Label htmlFor="import-json" className="cursor-pointer">
+                             <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                                       <Upload className="mr-2 h-4 w-4" /> Importa Tutto
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Importa un file con una o più configurazioni.</p></TooltipContent>
+                            </Tooltip>
                         </Label>
                         <Input id="import-json" type="file" accept=".json" className="hidden" onChange={handleImport} />
                         <Link href="/dashboard"><Button variant="outline"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Button></Link>
@@ -198,66 +288,111 @@ export default function AdminPage() {
                     </div>
                 </header>
 
-                <main className="p-4 md:p-8 grid gap-8 md:grid-cols-2 items-start">
+                <main className="p-4 md:p-8 grid gap-8 items-start">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Building2 className="text-primary" /> Gestione Palestre</CardTitle>
-                            <CardDescription>Aggiungi, modifica o elimina le palestre e i loro orari.</CardDescription>
+                            <CardTitle>Gestione Configurazioni</CardTitle>
+                            <CardDescription>Salva, carica e gestisci diverse configurazioni di palestre e squadre.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-3">
-                                {data.gyms.map(gym =>
-                                    editingGymId === gym.id ? (
-                                        <GymEditForm key={gym.id} gym={gym} onSave={handleUpdateGym} onCancel={() => setEditingGymId(null)} />
-                                    ) : (
-                                        <div key={gym.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
-                                            <span className="font-medium">{gym.name}</span>
-                                            <div className="flex items-center gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => setEditingGymId(gym.id)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteGym(gym.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                            </div>
-                                        </div>
-                                    )
-                                )}
+                        <CardContent className="flex items-center gap-4">
+                            <Select value={activeConfig.id} onValueChange={handleSetActiveConfig}>
+                                <SelectTrigger className="w-[280px]">
+                                    <SelectValue placeholder="Seleziona una configurazione" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {appData.configurations.map(c => (
+                                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" onClick={handleSaveAs}><Save className="mr-2 h-4 w-4" /> Salva come...</Button>
+                                <Button variant="ghost" size="icon" onClick={handleRename}><Edit className="h-4 w-4" /></Button>
+                               <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/90 hover:bg-destructive/10">
+                                            <TrashIcon className="h-4 w-4" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Questa azione non può essere annullata. Eliminerà permanentemente la configurazione
+                                            <span className="font-bold"> "{activeConfig.name}"</span>.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteConfig} className="bg-destructive hover:bg-destructive/90">Elimina</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
-                            <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddGym}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Palestra
-                            </Button>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Users className="text-primary" /> Gestione Squadre</CardTitle>
-                            <CardDescription>Definisci le squadre, le sessioni settimanali e il periodo.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-3">
-                                {data.teams.map(team =>
-                                    editingTeamId === team.id ? (
-                                        <TeamEditForm 
-                                            key={team.id} 
-                                            team={team} 
-                                            sessions={data.sessions.filter(s => s.teamId === team.id)}
-                                            onSave={handleUpdateTeam} 
-                                            onCancel={() => setEditingTeamId(null)} 
-                                        />
-                                    ) : (
-                                        <div key={team.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
-                                            <span className="font-medium">{team.name}</span>
-                                            <div className="flex items-center gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => setEditingTeamId(team.id)}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteTeam(team.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    <div className="grid md:grid-cols-2 gap-8 items-start">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Building2 className="text-primary" /> Gestione Palestre</CardTitle>
+                                <CardDescription>Aggiungi, modifica o elimina le palestre e i loro orari per la configurazione <span className="font-bold">"{activeConfig.name}"</span>.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-3">
+                                    {activeConfig.gyms.map(gym =>
+                                        editingGymId === gym.id ? (
+                                            <GymEditForm key={gym.id} gym={gym} onSave={handleUpdateGym} onCancel={() => setEditingGymId(null)} />
+                                        ) : (
+                                            <div key={gym.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
+                                                <span className="font-medium">{gym.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => setEditingGymId(gym.id)}><Pencil className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteGym(gym.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                            <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddTeam}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Squadra
-                            </Button>
-                        </CardContent>
-                    </Card>
+                                        )
+                                    )}
+                                </div>
+                                <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddGym}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Palestra
+                                </Button>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Users className="text-primary" /> Gestione Squadre</CardTitle>
+                                <CardDescription>Definisci le squadre e le loro sessioni per la configurazione <span className="font-bold">"{activeConfig.name}"</span>.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-3">
+                                    {activeConfig.teams.map(team =>
+                                        editingTeamId === team.id ? (
+                                            <TeamEditForm 
+                                                key={team.id} 
+                                                team={team} 
+                                                sessions={activeConfig.sessions.filter(s => s.teamId === team.id)}
+                                                onSave={handleUpdateTeam} 
+                                                onCancel={() => setEditingTeamId(null)} 
+                                            />
+                                        ) : (
+                                            <div key={team.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
+                                                <span className="font-medium">{team.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => setEditingTeamId(team.id)}><Pencil className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteTeam(team.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                </div>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                                <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddTeam}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Squadra
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </main>
             </div>
         </TooltipProvider>

@@ -1,5 +1,6 @@
 
 
+
 // --- TYPES ---
 
 export interface TimeSlot {
@@ -34,6 +35,20 @@ export interface Session {
   gymId: string | null;
   day: number | null; // 1 for Monday, 2 for Tuesday, etc.
   startTime: number | null; // minutes from the start of the day (e.g., 1020 for 17:00)
+}
+
+export interface Config {
+    id: string;
+    name: string;
+    gyms: Gym[];
+    teams: Team[];
+    sessions: Session[];
+    teamColors: { [key: string]: string };
+}
+
+export interface AppData {
+    configurations: Config[];
+    activeConfigurationId: string;
 }
 
 // --- MOCK DATA ---
@@ -97,10 +112,11 @@ const sessions: Session[] = [
 ];
 
 
-export const initialData = {
+export const initialData: Config = {
+    id: 'config-initial-1',
+    name: 'Configurazione di Default',
     gyms,
     teams,
     sessions,
     teamColors,
 };
-

@@ -5,11 +5,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Settings, LayoutDashboard, RefreshCw } from "lucide-react";
 
-export function Header({ onRefresh }: { onRefresh: () => void }) {
+export function Header({ onRefresh, configName }: { onRefresh: () => void, configName: string }) {
   return (
     <header className="flex items-center justify-between p-4 border-b bg-card">
       <h1 className="text-xl font-bold text-primary">
-        TeamUp Scheduler
+        TeamUp Scheduler: <span className="font-medium text-foreground">{configName}</span>
       </h1>
       <div className="flex items-center gap-2">
         <Button variant="outline" onClick={onRefresh}>

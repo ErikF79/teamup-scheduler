@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import React, { useState, createContext, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
-import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
+import { initialData as mockData, Session, Gym, Team, Config, AppData } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users, CalendarDays, Eye, Clock, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -72,7 +73,7 @@ export default function SchedulerContainer() {
 
 function Scheduler() {
   const { toast } = useToast();
-  const [appData, setAppData] = useState(mockData);
+  const [appData, setAppData] = useState<AppData>({ configurations: [mockData], activeConfigurationId: mockData.id });
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [placingSessionInfo, setPlacingSessionInfo] = useState<PlacingSessionInfo | null>(null);
   
@@ -82,27 +83,39 @@ function Scheduler() {
         try {
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
-                if (parsedData.gyms && parsedData.teams && parsedData.sessions) {
+                if (parsedData.configurations && parsedData.activeConfigurationId) {
                     setAppData(parsedData);
-                     toast({ title: "Dati Aggiornati", description: "I dati da admin sono stati ricaricati." });
+                     toast({ title: "Dati Aggiornati", description: "La configurazione attiva è stata ricaricata." });
+                     return;
                 }
-            } else {
-                 setAppData(mockData);
             }
         } catch (e) {
             console.error("Failed to load data from localStorage", e);
              toast({ title: "Errore", description: "Impossibile caricare i dati.", variant: "destructive" });
         }
     }
+    setAppData({ configurations: [mockData], activeConfigurationId: mockData.id });
   }, [toast]);
 
   useEffect(() => {
     reloadData();
   }, [reloadData]);
 
+  const activeConfig = useMemo(() => {
+    return appData.configurations.find(c => c.id === appData.activeConfigurationId) || appData.configurations[0] || mockData;
+  }, [appData]);
+
+
   const updateSessions = (newSessions: Session[]) => {
-      const newAppData = { ...appData, sessions: newSessions };
+      const newConfigurations = appData.configurations.map(c => {
+            if (c.id === appData.activeConfigurationId) {
+                return { ...c, sessions: newSessions };
+            }
+            return c;
+      });
+      const newAppData = { ...appData, configurations: newConfigurations };
       setAppData(newAppData);
+
       if (typeof window !== 'undefined') {
           localStorage.setItem('teamup_data', JSON.stringify(newAppData));
       }
@@ -110,12 +123,12 @@ function Scheduler() {
 
 
   const moveSession = (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null): boolean => {
-    const sessionToMove = appData.sessions.find(s => s.id === sessionId);
+    const sessionToMove = activeConfig.sessions.find(s => s.id === sessionId);
     if (!sessionToMove) return false;
 
     // If un-assigning, just do it.
     if (newGymId === null || newDay === null || newStartTime === null) {
-        const newSessions = appData.sessions.map(s => 
+        const newSessions = activeConfig.sessions.map(s => 
             s.id === sessionId ? { ...s, gymId: null, day: null, startTime: null } : s
         );
         updateSessions(newSessions);
@@ -126,7 +139,7 @@ function Scheduler() {
     const sessionEndMinutes = newStartTime + sessionToMove.duration;
 
     // --- VALIDATION 1: Check Gym Availability ---
-    const gym = appData.gyms.find(g => g.id === newGymId);
+    const gym = activeConfig.gyms.find(g => g.id === newGymId);
     if (!gym) return false;
     
     const dayConfig = gym.availability.find(d => d.key === newDay);
@@ -150,7 +163,7 @@ function Scheduler() {
     }
 
     // --- VALIDATION 2: Check for Collisions ---
-    const collision = appData.sessions.some(s => {
+    const collision = activeConfig.sessions.some(s => {
         if (s.id === sessionId || s.gymId !== newGymId || s.day !== newDay || s.startTime === null) {
             return false;
         }
@@ -171,7 +184,7 @@ function Scheduler() {
 
     // --- All checks passed, update the session ---
     const updatedSession = { ...sessionToMove, gymId: newGymId, day: newDay, startTime: newStartTime };
-    const newSessions = appData.sessions.map(s => s.id === sessionId ? updatedSession : s);
+    const newSessions = activeConfig.sessions.map(s => s.id === sessionId ? updatedSession : s);
     updateSessions(newSessions);
 
     toast({
@@ -182,16 +195,16 @@ function Scheduler() {
   };
 
   const getSessionsByGymAndDay = (gymId: string, day: number) => {
-    return appData.sessions.filter(session => session.gymId === gymId && session.day === day);
+    return activeConfig.sessions.filter(session => session.gymId === gymId && session.day === day);
   };
 
   const getUnassignedSessions = () => {
-      return appData.sessions.filter(s => s.gymId === null);
+      return activeConfig.sessions.filter(s => s.gymId === null);
   }
   
   return (
-    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, placingSessionInfo, setPlacingSessionInfo }}>
-        <Header onRefresh={reloadData} />
+    <SchedulerContext.Provider value={{ ...activeConfig, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, placingSessionInfo, setPlacingSessionInfo }}>
+        <Header onRefresh={reloadData} configName={activeConfig.name} />
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
              <div className="flex-grow flex flex-col h-full overflow-hidden">
@@ -410,7 +423,7 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleClick}
-            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card px-2 py-1 ${isDraggable ? cursorClass : ''}`}
+            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card px-2 py-1 mx-1 ${isDraggable ? cursorClass : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
@@ -654,7 +667,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
 
                     return (
                         <div key={session.id} className="absolute w-full" style={{ top: `${top}%`, height: `${height}%` }}>
-                            <div className="h-full w-full p-px">
+                            <div className="h-full w-full">
                                 <SessionCard session={session} isDraggable={true} />
                             </div>
                         </div>
@@ -777,7 +790,3 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
         </Dialog>
     )
 }
-
-    
-
-    

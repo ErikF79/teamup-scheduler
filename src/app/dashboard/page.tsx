@@ -6,15 +6,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { initialData as mockData, Gym, Team, Session } from '@/lib/teamup';
+import { initialData as mockData, Gym, Team, Session, Config, AppData } from '@/lib/teamup';
 import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-type AppData = {
-    gyms: Gym[];
-    teams: Team[];
-    sessions: Session[];
-};
 
 function getWeeksBetween(d1: Date, d2: Date) {
     if (d1 > d2) return 0;
@@ -22,26 +17,29 @@ function getWeeksBetween(d1: Date, d2: Date) {
 }
 
 export default function DashboardPage() {
-    const [data, setData] = useState<AppData>({ gyms: [], teams: [], sessions: [] });
+    const [data, setData] = useState<Config>({ ...mockData });
 
     const fetchData = useCallback(() => {
         if (typeof window !== 'undefined') {
             const savedData = localStorage.getItem('teamup_data');
             try {
                 if (savedData) {
-                    const parsedData = JSON.parse(savedData);
-                    if (parsedData.gyms && parsedData.teams && parsedData.sessions) {
-                        setData(parsedData);
+                    const parsedAppData: AppData = JSON.parse(savedData);
+                    if (parsedAppData.configurations && parsedAppData.activeConfigurationId) {
+                        const activeConfig = parsedAppData.configurations.find(c => c.id === parsedAppData.activeConfigurationId);
+                        if (activeConfig) {
+                             setData(activeConfig);
+                             return;
+                        }
                     }
-                } else {
-                    setData(mockData); // Fallback to mockData if nothing in localStorage
                 }
             } catch (e) {
                 console.error("Failed to load data from localStorage, using mock data", e);
-                setData(mockData);
             }
         }
+        setData(mockData); // Fallback to mockData if nothing in localStorage
     }, []);
+
 
     useEffect(() => {
         fetchData();
@@ -121,7 +119,7 @@ export default function DashboardPage() {
         <div className="min-h-screen bg-background text-foreground">
              <header className="flex items-center justify-between p-4 border-b bg-card">
                 <h1 className="text-xl font-bold text-primary flex items-center gap-2">
-                    <LayoutDashboard/> Dashboard Statistiche
+                    <LayoutDashboard/> Dashboard Statistiche per "{data.name}"
                 </h1>
                 <div className="flex items-center gap-2">
                     <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>

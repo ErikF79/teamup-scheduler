@@ -85,70 +85,66 @@ export default function Scheduler() {
     let sessionToMove = appData.sessions.find(s => s.id === sessionId);
     if (!sessionToMove) return false;
 
-    const updatedSession = { ...sessionToMove, gymId: newGymId, day: newDay, startTime: newStartTime };
-    
-    if (newGymId && newDay !== null && newStartTime !== null) {
-        const gym = appData.gyms.find(g => g.id === newGymId);
-        const dayConfig = gym?.availability.find(d => d.key === newDay);
-        const availabilitySlots = dayConfig?.slots || [];
-        const sessionEndMinutes = newStartTime + updatedSession.duration;
-
-        if (gym && availabilitySlots.length > 0) {
-            let isWithinAvailableSlot = true;
-            // Check if every minute of the session falls within an available slot
-            for (let minute = newStartTime; minute < sessionEndMinutes; minute++) {
-                const isMinuteAvailable = availabilitySlots.some(slot => minute >= slot.start && minute < slot.end);
-                if (!isMinuteAvailable) {
-                    isWithinAvailableSlot = false;
-                    break;
-                }
-            }
-
-             if (!isWithinAvailableSlot) {
-                 toast({
-                    title: "Orario non valido!",
-                    description: "La sessione è fuori dagli orari disponibili della palestra.",
-                    variant: "destructive"
-                });
-                return false;
-             }
-        } else if (gym) { // No slots defined for the day
-             toast({
-                title: "Orario non valido!",
-                description: `La palestra ${gym.name} è chiusa in questo giorno.`,
-                variant: "destructive"
-            });
-            return false;
-        }
-
-        const collision = appData.sessions.some(s => {
-            if (s.id === sessionId || s.gymId !== newGymId || s.day !== newDay || s.startTime === null) {
-                return false;
-            }
-            const s_start = s.startTime;
-            const s_end = s.startTime + s.duration;
-            const new_start = newStartTime;
-            const new_end = newStartTime + updatedSession.duration;
-            
-            return new_start < s_end && new_end > s_start;
-        });
-
-        if (collision) {
-            toast({
-                title: "Collisione Rilevata!",
-                description: "Impossibile spostare la sessione in questo slot orario, è già occupato.",
-                variant: "destructive"
-            });
-            return false;
-        }
+    // If un-assigning, just do it.
+    if (newGymId === null || newDay === null || newStartTime === null) {
+        const newSessions = appData.sessions.map(s => 
+            s.id === sessionId ? { ...s, gymId: null, day: null, startTime: null } : s
+        );
+        updateSessions(newSessions);
+        toast({ title: "Sessione rimossa dal calendario" });
+        return true;
     }
 
+    const sessionEndMinutes = newStartTime + sessionToMove.duration;
+
+    // --- VALIDATION 1: Check Gym Availability ---
+    const gym = appData.gyms.find(g => g.id === newGymId);
+    if (!gym) return false;
+    const dayConfig = gym.availability.find(d => d.key === newDay);
+    const availabilitySlots = dayConfig?.slots || [];
+
+    const isWithinAvailableSlot = availabilitySlots.some(slot =>
+        newStartTime >= slot.start && sessionEndMinutes <= slot.end
+    );
+
+    if (!isWithinAvailableSlot) {
+        toast({
+            title: "Orario non valido!",
+            description: "La sessione è fuori dagli orari di disponibilità della palestra o a cavallo di più fasce.",
+            variant: "destructive"
+        });
+        return false;
+    }
+
+    // --- VALIDATION 2: Check for Collisions ---
+    const collision = appData.sessions.some(s => {
+        // Skip self and unassigned sessions
+        if (s.id === sessionId || s.gymId !== newGymId || s.day !== newDay || s.startTime === null) {
+            return false;
+        }
+        const s_start = s.startTime;
+        const s_end = s.startTime + s.duration;
+        // Check for any overlap
+        return newStartTime < s_end && sessionEndMinutes > s_start;
+    });
+
+    if (collision) {
+        toast({
+            title: "Collisione Rilevata!",
+            description: "Impossibile spostare. Lo slot orario è già occupato.",
+            variant: "destructive"
+        });
+        return false;
+    }
+
+    // --- All checks passed, update the session ---
+    const updatedSession = { ...sessionToMove, gymId: newGymId, day: newDay, startTime: newStartTime };
     const newSessions = appData.sessions.map(s => s.id === sessionId ? updatedSession : s);
     updateSessions(newSessions);
 
     toast({
         title: "Sessione Spostata",
-        description: "La modifica è salvata in memoria per questa sessione.",
+        description: "La modifica è stata salvata.",
     });
     return true;
   };
@@ -172,21 +168,6 @@ export default function Scheduler() {
                             <TabsTrigger value="gym-view"><Building2 className="mr-2 h-4 w-4"/>Vista per Palestra</TabsTrigger>
                             <TabsTrigger value="day-view"><CalendarDays className="mr-2 h-4 w-4"/>Vista per Giorno</TabsTrigger>
                         </TabsList>
-                        <Card className="hidden">
-                            <CardHeader>
-                                <CardTitle className="text-base">Navigazione Rapida Palestre</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex flex-wrap gap-2">
-                                {appData.gyms.map(gym => (
-                                    <a key={gym.id} href={`#${gym.id}`} onClick={(e) => {
-                                        e.preventDefault();
-                                        document.getElementById(gym.id)?.scrollIntoView({ behavior: 'smooth' });
-                                    }}>
-                                        <Button variant="outline">{gym.name}</Button>
-                                    </a>
-                                ))}
-                            </CardContent>
-                        </Card>
                     </div>
 
                     <TabsContent value="gym-view" className="flex-grow h-full overflow-hidden">
@@ -252,11 +233,20 @@ function DayViewScheduler() {
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Gym Headers */}
-                    {gyms.map(gym => (
-                        <div key={gym.id} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
-                            {gym.name}
-                        </div>
-                    ))}
+                    {gyms.map(gym => {
+                         const totalAvailableMinutes = DAYS_OF_WEEK.reduce((total, day) => {
+                            const dayConfig = gym.availability.find(d => d.key === day.key);
+                            const dayMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
+                            return total + dayMinutes;
+                        }, 0);
+                        const totalHours = (totalAvailableMinutes / 60).toFixed(1);
+
+                        return (
+                            <div key={gym.id} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
+                                 {gym.name}
+                            </div>
+                        )
+                    })}
 
                     {/* Time Slots Column */}
                     <div className="row-start-2 col-start-1 bg-card border-r sticky left-0 z-10">
@@ -432,11 +422,18 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Day Headers */}
-                    {DAYS_OF_WEEK.map(day => (
-                        <div key={day.key} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm sticky top-0 bg-card z-10">
-                            {day.name}
-                        </div>
-                    ))}
+                    {DAYS_OF_WEEK.map(day => {
+                        const dayConfig = gym.availability.find(d => d.key === day.key);
+                        const totalMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
+                        const totalHours = (totalMinutes / 60).toFixed(1);
+
+                        return (
+                             <div key={day.key} className="col-span-1 h-12 flex flex-col items-center justify-center border-b font-semibold text-center text-sm sticky top-0 bg-card z-10">
+                                <span>{day.name}</span>
+                                <span className="font-normal text-xs text-muted-foreground">{totalHours}h libere</span>
+                            </div>
+                        )
+                    })}
                     
                     {/* Time Slots Column */}
                     <div className="row-start-2 col-start-1 bg-card border-r sticky left-0 z-10">
@@ -514,8 +511,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     return (
         <div
-            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-background"
-            style={{ height: `${totalHeightInPx}px` }}
+            className="row-start-2 col-start-auto relative border-b border-l transition-colors"
+            style={{ height: `${totalHeightInPx}px`, background: '#FFFFFF' }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -534,7 +531,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                     return (
                         <div 
                             key={index} 
-                            className="absolute w-full bg-[repeating-linear-gradient(45deg,hsl(var(--border)),hsl(var(--border))_4px,transparent_4px,transparent_10px)]" 
+                            className="absolute w-full bg-[repeating-linear-gradient(45deg,hsl(var(--muted)/0.4),hsl(var(--muted)/0.4)_4px,transparent_4px,transparent_10px)]" 
                             style={{ top: `${top}%`, height: `${height}%`, backgroundSize: '10px 10px' }}
                         />
                     );

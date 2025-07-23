@@ -258,8 +258,9 @@ function DayViewScheduler() {
                         const totalHours = (totalAvailableMinutes / 60).toFixed(1);
 
                         return (
-                            <div key={gym.id} className="col-span-1 h-12 flex items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
-                                 {gym.name}
+                            <div key={gym.id} className="col-span-1 h-12 flex flex-col items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
+                                 <span>{gym.name}</span>
+                                <span className="font-normal text-xs text-muted-foreground">{totalHours}h libere</span>
                             </div>
                         )
                     })}
@@ -667,7 +668,7 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={handleClose}>Annulla</Button>
-                    <Button onClick={handleSave}>Salva e Posiziona</Button>
+                    <Button variant="default" onClick={handleSave}>Salva e Posiziona</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

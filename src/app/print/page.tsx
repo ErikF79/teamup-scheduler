@@ -97,7 +97,7 @@ export default function PrintPage() {
                     <Printer /> Stampa Palinsesto
                 </h1>
                 <div className="flex items-center gap-2">
-                    <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Stampa</Button>
+                    <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />Stampa Pagina</Button>
                     <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
                 </div>
             </header>
@@ -106,7 +106,7 @@ export default function PrintPage() {
                  <Card className="w-full max-w-4xl mb-8 no-print">
                     <CardHeader>
                         <CardTitle>Opzioni di Stampa</CardTitle>
-                        <CardDescription>Scegli cosa vuoi stampare.</CardDescription>
+                        <CardDescription>Scegli cosa vuoi stampare. Il contenuto verrà generato qui sotto in un formato A4.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex items-center gap-4">
                         <div>

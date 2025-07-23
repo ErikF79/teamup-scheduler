@@ -203,7 +203,7 @@ export default function Scheduler() {
 // --- VIEWS ---
 
 function GymViewScheduler() {
-    const { gyms } = useScheduler();
+    const { gyms, getSessionsByGymAndDay } = useScheduler();
     return (
         <ScrollArea className="flex-grow h-full pr-4">
             <div className="space-y-6">
@@ -212,7 +212,7 @@ function GymViewScheduler() {
                 <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                     <Building2 className="text-primary"/> {gym.name}
                 </h2>
-                <GymScheduleGrid gym={gym} />
+                <GymScheduleGrid gym={gym} sessions={getSessionsByGymAndDay(gym.id, 1)} />
                 </div>
             ))}
             </div>
@@ -252,49 +252,49 @@ function DayViewScheduler() {
                     {gyms.map(gym => {
                         return (
                              <TabsContent key={gym.id} value="1" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={1} />
+                                <DayHeaderCell gym={gym} dayKey={1} sessions={getSessionsByGymAndDay(gym.id, 1)} />
                             </TabsContent>
                         )
                     })}
                      {gyms.map(gym => {
                         return (
                              <TabsContent key={gym.id} value="2" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={2} />
+                                <DayHeaderCell gym={gym} dayKey={2} sessions={getSessionsByGymAndDay(gym.id, 2)} />
                             </TabsContent>
                         )
                     })}
                      {gyms.map(gym => {
                         return (
                              <TabsContent key={gym.id} value="3" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={3} />
+                                <DayHeaderCell gym={gym} dayKey={3} sessions={getSessionsByGymAndDay(gym.id, 3)} />
                             </TabsContent>
                         )
                     })}
                      {gyms.map(gym => {
                         return (
                              <TabsContent key={gym.id} value="4" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={4} />
+                                <DayHeaderCell gym={gym} dayKey={4} sessions={getSessionsByGymAndDay(gym.id, 4)} />
                             </TabsContent>
                         )
                     })}
                      {gyms.map(gym => {
                         return (
                              <TabsContent key={gym.id} value="5" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={5} />
+                                <DayHeaderCell gym={gym} dayKey={5} sessions={getSessionsByGymAndDay(gym.id, 5)} />
                             </TabsContent>
                         )
                     })}
                      {gyms.map(gym => {
                         return (
                              <TabsContent key={gym.id} value="6" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={6} />
+                                <DayHeaderCell gym={gym} dayKey={6} sessions={getSessionsByGymAndDay(gym.id, 6)} />
                             </TabsContent>
                         )
                     })}
                      {gyms.map(gym => {
                         return (
                              <TabsContent key={gym.id} value="7" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={7} />
+                                <DayHeaderCell gym={gym} dayKey={7} sessions={getSessionsByGymAndDay(gym.id, 7)} />
                             </TabsContent>
                         )
                     })}
@@ -321,11 +321,10 @@ function DayViewScheduler() {
     )
 }
 
-function DayHeaderCell({ gym, dayKey }: { gym: Gym; dayKey: number }) {
-  const { getSessionsByGymAndDay } = useScheduler();
+function DayHeaderCell({ gym, dayKey, sessions }: { gym: Gym; dayKey: number, sessions: Session[] }) {
   const dayConfig = gym.availability.find(d => d.key === dayKey);
   const totalAvailableMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
-  const scheduledMinutes = getSessionsByGymAndDay(gym.id, dayKey).reduce((sum, session) => sum + session.duration, 0);
+  const scheduledMinutes = sessions.reduce((sum, session) => sum + session.duration, 0);
   const remainingHours = ((totalAvailableMinutes - scheduledMinutes) / 60).toFixed(1);
 
   return (
@@ -393,12 +392,12 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleClick}
-            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card mx-1 py-1 px-2 ${isDraggable ? cursorClass : ''}`}
+            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card px-2 ${isDraggable ? cursorClass : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
-            {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />}
-            <div className="flex flex-col w-full">
+            {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 mt-2" />}
+            <div className="flex flex-col w-full py-1">
                 <p className="font-bold text-sm text-card-foreground">{team?.name}</p>
                 {isPlaced && (
                      <p className="text-xs font-semibold text-primary flex items-center gap-1">
@@ -467,8 +466,7 @@ const UnassignedSessionsColumn = () => {
 };
 
 // --- GYM SCHEDULE GRID (WEEK VIEW) ---
-const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
-    const { getSessionsByGymAndDay } = useScheduler();
+const GymScheduleGrid = ({ gym, sessions }: { gym: Gym, sessions: Session[] }) => {
     
     const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) * 4 }, (_, i) => {
         const totalMinutes = MASTER_START_HOUR * 60 + i * 15;
@@ -491,17 +489,8 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                     </div>
                     {/* Day Headers */}
                     {DAYS_OF_WEEK.map(day => {
-                        const dayConfig = gym.availability.find(d => d.key === day.key);
-                        const totalAvailableMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
-                        const scheduledMinutes = getSessionsByGymAndDay(gym.id, day.key).reduce((sum, session) => sum + session.duration, 0);
-                        const remainingHours = ((totalAvailableMinutes - scheduledMinutes) / 60).toFixed(1);
-
-                        return (
-                             <div key={day.key} className="col-span-1 h-12 flex flex-col items-center justify-center border-b font-semibold text-center text-sm sticky top-0 bg-card z-10">
-                                <span>{day.name}</span>
-                                <span className="font-normal text-xs text-muted-foreground">{remainingHours}h libere</span>
-                            </div>
-                        )
+                        const daySessions = sessions.filter(s => s.day === day.key);
+                        return <DayHeaderCell key={day.key} gym={gym} dayKey={day.key} sessions={daySessions} />
                     })}
                     
                     {/* Time Slots Column */}

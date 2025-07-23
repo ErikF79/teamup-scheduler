@@ -6,7 +6,7 @@ import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users, CalendarDays, Eye, Clock, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -220,20 +220,29 @@ function Scheduler() {
 
 // --- VIEWS ---
 
-const useScrollToTime = (scrollAreaRef: React.RefObject<HTMLDivElement | null>) => {
+const useScrollToTime = (viewportRef: React.RefObject<HTMLDivElement | null>) => {
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollToPixel = MASTER_START_HOUR * 4 * TIME_SLOT_HEIGHT_PX;
-      scrollAreaRef.current.scrollTo({ top: scrollToPixel, behavior: 'auto' });
+    const scrollToHour = () => {
+        if (viewportRef.current) {
+            // Each hour is 4 * 15-min slots. Height of each slot is TIME_SLOT_HEIGHT_PX.
+            const scrollToPixel = MASTER_START_HOUR * 4 * TIME_SLOT_HEIGHT_PX;
+            viewportRef.current.scrollTo({ top: scrollToPixel, behavior: 'auto' });
+        }
     }
-  }, [scrollAreaRef]);
+    // Use requestAnimationFrame to ensure the scroll happens after the layout is painted.
+    const animationFrameId = requestAnimationFrame(scrollToHour);
+    
+    return () => {
+        cancelAnimationFrame(animationFrameId);
+    }
+  }, [viewportRef]);
 };
 
 
 function GymViewScheduler() {
     const { gyms } = useScheduler();
-    const scrollRef = useRef<HTMLDivElement>(null);
-    useScrollToTime(scrollRef);
+    const viewportRef = useRef<HTMLDivElement>(null);
+    useScrollToTime(viewportRef);
     
     if (!gyms || gyms.length === 0) {
         return <div className="text-center text-muted-foreground pt-10">Nessuna palestra definita. Vai al pannello Admin per aggiungerne una.</div>;
@@ -248,9 +257,9 @@ function GymViewScheduler() {
                     ))}
                 </TabsList>
              </div>
-            <ScrollArea className="flex-grow h-full" ref={scrollRef}>
+            <ScrollArea className="flex-grow h-full" viewportRef={viewportRef}>
                  {gyms.map(gym => (
-                    <TabsContent key={gym.id} value={gym.id} className="h-full">
+                    <TabsContent key={gym.id} value={gym.id} className="h-full mt-0">
                         <GymScheduleGrid gym={gym} />
                     </TabsContent>
                 ))}
@@ -261,8 +270,8 @@ function GymViewScheduler() {
 
 function DayViewScheduler() {
     const { gyms } = useScheduler();
-    const scrollRef = useRef<HTMLDivElement>(null);
-    useScrollToTime(scrollRef);
+    const viewportRef = useRef<HTMLDivElement>(null);
+    useScrollToTime(viewportRef);
 
     const timeSlots = useMemo(() => {
         const slots = [];
@@ -292,7 +301,7 @@ function DayViewScheduler() {
                     ))}
                 </TabsList>
              </div>
-            <ScrollArea className="flex-grow h-full" ref={scrollRef}>
+            <ScrollArea className="flex-grow h-full" viewportRef={viewportRef}>
                  <div className="grid grid-cols-[auto_repeat(var(--gym-count),1fr)] min-w-full" style={{'--gym-count': gyms.length} as React.CSSProperties}>
                     {/* Time Column Header */}
                     <div className="row-span-1 col-span-1 bg-card border-r sticky top-0 z-20">
@@ -300,7 +309,7 @@ function DayViewScheduler() {
                     </div>
                     {/* Gym Headers */}
                     {DAYS_OF_WEEK.map(day => (
-                        <TabsContent key={day.key} value={String(day.key)} className="contents">
+                        <TabsContent key={day.key} value={String(day.key)} className="contents mt-0">
                             {gyms.map(gym => (
                                 <DayHeaderCell key={`${gym.id}-${day.key}`} gym={gym} dayKey={day.key} />
                             ))}
@@ -316,7 +325,7 @@ function DayViewScheduler() {
                         ))}
                     </div>
                      {DAYS_OF_WEEK.map(day => (
-                        <TabsContent key={day.key} value={String(day.key)} className="contents">
+                        <TabsContent key={day.key} value={String(day.key)} className="contents mt-0">
                             {gyms.map(gym => (
                                <DayGymScheduleCell key={`${gym.id}-${day.key}`} gym={gym} dayKey={day.key} />
                             ))}

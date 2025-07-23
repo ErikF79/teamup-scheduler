@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { initialData as mockData, Gym, Team, Session, Config, AppData } from '@/lib/teamup';
-import { ArrowLeft, Printer, Building2, Users, Calendar, AlertCircle, Download } from 'lucide-react';
+import { ArrowLeft, Printer, Building2, Users, Calendar, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 
@@ -157,12 +157,9 @@ export default function PrintPage() {
                             }
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 pt-4 border-t">
+                         <div className="flex items-center gap-2 pt-4 border-t">
                             <Button onClick={handlePrint} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
-                                <Printer className="mr-2 h-4 w-4" />Stampa
-                            </Button>
-                            <Button onClick={handlePrint} variant="outline" className="border-green-800 text-green-800 hover:bg-green-50 hover:text-green-900">
-                                <Download className="mr-2 h-4 w-4" />Salva PDF
+                                <Printer className="mr-2 h-4 w-4" />Stampa / Salva PDF
                             </Button>
                         </div>
                     </CardContent>

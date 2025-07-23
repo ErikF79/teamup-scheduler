@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, createContext, useContext, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, createContext, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
 import { initialData as mockData, Session, Gym, Team } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users, CalendarDays, Eye, Clock, RefreshCw } from 'lucide-react';
@@ -18,7 +18,6 @@ import { Header } from "@/components/teamup/Header";
 // --- CONSTANTS ---
 const MASTER_START_HOUR = 15;
 const MASTER_END_HOUR = 23;
-const TOTAL_MASTER_MINUTES = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
 const DAYS_OF_WEEK = [
     { key: 1, name: 'Lunedì' },
     { key: 2, name: 'Martedì' },
@@ -28,6 +27,7 @@ const DAYS_OF_WEEK = [
     { key: 6, name: 'Sabato' },
     { key: 7, name: 'Domenica' },
 ];
+const TIME_SLOT_HEIGHT_PX = 24; // Corresponds to h-6 in tailwind (1.5rem = 24px)
 
 // --- TYPES ---
 interface PlacingSessionInfo {
@@ -48,6 +48,7 @@ interface SchedulerContextType {
   getUnassignedSessions: () => Session[];
   setEditingSession: (session: Session | null) => void;
   setPlacingSessionInfo: (info: PlacingSessionInfo | null) => void;
+  placingSessionInfo: PlacingSessionInfo | null;
 }
 
 const SchedulerContext = createContext<SchedulerContextType | null>(null);
@@ -189,7 +190,7 @@ function Scheduler() {
   }
   
   return (
-    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, setPlacingSessionInfo }}>
+    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, setPlacingSessionInfo, placingSessionInfo }}>
         <Header onRefresh={reloadData} />
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
@@ -219,17 +220,32 @@ function Scheduler() {
 
 // --- VIEWS ---
 
+const useScrollToTime = (scrollAreaRef: React.RefObject<HTMLDivElement>) => {
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+        // Calculate the pixel position for MASTER_START_HOUR
+        // Each hour has 4 slots (15 mins each), and each slot is TIME_SLOT_HEIGHT_PX high.
+        const scrollToPixel = MASTER_START_HOUR * 4 * TIME_SLOT_HEIGHT_PX;
+        scrollAreaRef.current.scrollTo({ top: scrollToPixel, behavior: 'smooth' });
+    }
+  }, [scrollAreaRef]);
+};
+
+
 function GymViewScheduler() {
-    const { gyms, sessions } = useScheduler();
+    const { gyms } = useScheduler();
+    const scrollRef = useRef<HTMLDivElement>(null);
+    useScrollToTime(scrollRef);
+    
     return (
-        <ScrollArea className="flex-grow h-full pr-4">
+        <ScrollArea className="flex-grow h-full pr-4" ref={scrollRef}>
             <div className="space-y-6">
             {gyms.map(gym => (
                 <div key={gym.id} id={gym.id} className="scroll-mt-4">
                 <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                     <Building2 className="text-primary"/> {gym.name}
                 </h2>
-                <GymScheduleGrid gym={gym} allSessions={sessions} />
+                <GymScheduleGrid gym={gym} />
                 </div>
             ))}
             </div>
@@ -238,7 +254,9 @@ function GymViewScheduler() {
 }
 
 function DayViewScheduler() {
-    const { gyms, sessions } = useScheduler();
+    const { gyms } = useScheduler();
+    const scrollRef = useRef<HTMLDivElement>(null);
+    useScrollToTime(scrollRef);
 
     const timeSlots = useMemo(() => {
         const slots = [];
@@ -264,7 +282,7 @@ function DayViewScheduler() {
                     ))}
                 </TabsList>
              </div>
-            <ScrollArea className="flex-grow h-full">
+            <ScrollArea className="flex-grow h-full" ref={scrollRef}>
                  <div className="grid grid-cols-[auto_repeat(var(--gym-count),1fr)] min-w-full" style={{'--gym-count': gyms.length} as React.CSSProperties}>
                     {/* Time Column Header */}
                     <div className="row-span-1 col-span-1 bg-card border-r sticky top-0 z-20">
@@ -274,7 +292,7 @@ function DayViewScheduler() {
                     {DAYS_OF_WEEK.map(day => (
                         <TabsContent key={day.key} value={String(day.key)} className="contents">
                             {gyms.map(gym => (
-                                <DayHeaderCell key={`${gym.id}-${day.key}`} gym={gym} dayKey={day.key} sessions={sessions.filter(s => s.gymId === gym.id && s.day === day.key)} />
+                                <DayHeaderCell key={`${gym.id}-${day.key}`} gym={gym} dayKey={day.key} />
                             ))}
                         </TabsContent>
                     ))}
@@ -300,10 +318,12 @@ function DayViewScheduler() {
     )
 }
 
-function DayHeaderCell({ gym, dayKey, sessions }: { gym: Gym; dayKey: number, sessions: Session[] }) {
+function DayHeaderCell({ gym, dayKey }: { gym: Gym; dayKey: number }) {
+  const { getSessionsByGymAndDay } = useScheduler();
   const dayConfig = gym.availability.find(d => d.key === dayKey);
   const totalAvailableMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
-  const scheduledMinutes = sessions.reduce((sum, session) => sum + session.duration, 0);
+  const scheduledSessions = getSessionsByGymAndDay(gym.id, dayKey);
+  const scheduledMinutes = scheduledSessions.reduce((sum, session) => sum + session.duration, 0);
   const remainingHours = ((totalAvailableMinutes - scheduledMinutes) / 60).toFixed(1);
 
   return (
@@ -371,7 +391,7 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleClick}
-            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card px-2 py-1 mx-1 ${isDraggable ? cursorClass : ''}`}
+            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card px-2 py-1 ${isDraggable ? cursorClass : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
@@ -445,7 +465,7 @@ const UnassignedSessionsColumn = () => {
 };
 
 // --- GYM SCHEDULE GRID (WEEK VIEW) ---
-const GymScheduleGrid = ({ gym, allSessions }: { gym: Gym, allSessions: Session[] }) => {
+const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     
     const timeSlots = useMemo(() => {
         const slots = [];
@@ -472,10 +492,9 @@ const GymScheduleGrid = ({ gym, allSessions }: { gym: Gym, allSessions: Session[
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Day Headers */}
-                    {DAYS_OF_WEEK.map(day => {
-                        const daySessions = allSessions.filter(s => s.day === day.key && s.gymId === gym.id);
-                        return <DayHeaderCell key={day.key} gym={gym} dayKey={day.key} sessions={daySessions} />
-                    })}
+                    {DAYS_OF_WEEK.map(day => (
+                        <DayHeaderCell key={day.key} gym={gym} dayKey={day.key} />
+                    ))}
                     
                     {/* Time Slots Column */}
                     <div className="row-start-2 col-start-1 bg-card border-r sticky left-0 z-10">
@@ -515,9 +534,6 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         const end = start + 15;
         return { start, end };
     }), [totalMinutesInView]);
-
-
-    const totalHeightInPx = allIntervals.length * 6; // h-6 -> 1.5rem -> 24px per 15min. But it is h-6 -> 6px. No, h-6 is 1.5rem which is 24px. The grid has 96 slots per hour (4*24px=96px/hr). Total height is 24 * 96 = 2304px
     
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -540,7 +556,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     return (
         <div
-            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-white"
+            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-background"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -602,7 +618,9 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
 
                     return (
                         <div key={session.id} className="absolute w-full" style={{ top: `${top}%`, height: `${height}%` }}>
-                            <SessionCard session={session} isDraggable={true} />
+                            <div className="h-full w-full p-px">
+                                <SessionCard session={session} isDraggable={true} />
+                            </div>
                         </div>
                     );
                 })}
@@ -725,7 +743,3 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
 }
 
     
-
-    
-
-

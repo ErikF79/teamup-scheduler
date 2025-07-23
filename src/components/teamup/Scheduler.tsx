@@ -479,6 +479,23 @@ const UnassignedSessionsColumn = () => {
 };
 
 // --- GYM SCHEDULE GRID (WEEK VIEW) ---
+
+function GymDayHeaderCell({ gym, day }: { gym: Gym; day: { key: number; name: string } }) {
+    const { getSessionsByGymAndDay } = useScheduler();
+    const dayConfig = gym.availability.find(d => d.key === day.key);
+    const totalAvailableMinutes = (dayConfig?.slots || []).reduce((sum, slot) => sum + (slot.end - slot.start), 0);
+    const scheduledSessions = getSessionsByGymAndDay(gym.id, day.key);
+    const scheduledMinutes = scheduledSessions.reduce((sum, session) => sum + session.duration, 0);
+    const remainingHours = ((totalAvailableMinutes - scheduledMinutes) / 60).toFixed(1);
+
+    return (
+        <div className="col-span-1 h-12 flex flex-col items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
+            <span>{day.name}</span>
+            <span className="font-normal text-xs text-muted-foreground">{remainingHours}h libere</span>
+        </div>
+    );
+}
+
 const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     
     const timeSlots = useMemo(() => {
@@ -507,9 +524,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
                     </div>
                     {/* Day Headers */}
                     {DAYS_OF_WEEK.map(day => (
-                       <div key={day.key} className="col-span-1 h-12 flex flex-col items-center justify-center border-b font-semibold text-center text-sm px-2 sticky top-0 z-20 bg-card">
-                            <span>{day.name}</span>
-                        </div>
+                       <GymDayHeaderCell key={day.key} gym={gym} day={day} />
                     ))}
                     
                     {/* Time Slots Column */}
@@ -757,5 +772,7 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
         </Dialog>
     )
 }
+
+    
 
     

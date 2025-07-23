@@ -85,6 +85,9 @@ export default function AdminPage() {
                 if (!currentConfig.coaches) {
                     currentConfig.coaches = [];
                 }
+                 // Ensure coachIds is an array for every session
+                currentConfig.sessions = currentConfig.sessions.map(s => ({...s, coachIds: Array.isArray(s.coachIds) ? s.coachIds : []}));
+
                 return currentConfig;
             }
             return c;
@@ -150,7 +153,7 @@ export default function AdminPage() {
             id: `session-${newTeamId}-1`,
             teamId: newTeamId,
             duration: 90, // default duration
-            coachId: null,
+            coachIds: [],
             gymId: null,
             day: null,
             startTime: null,
@@ -201,7 +204,10 @@ export default function AdminPage() {
 
     const handleDeleteCoach = (coachId: string) => {
         // Unassign coach from any sessions
-        const newSessions = activeConfig.sessions.map(s => s.coachId === coachId ? { ...s, coachId: null } : s);
+        const newSessions = activeConfig.sessions.map(s => {
+            const newCoachIds = s.coachIds.filter(id => id !== coachId);
+            return { ...s, coachIds: newCoachIds };
+        });
         updateData({
             coaches: (activeConfig.coaches || []).filter(c => c.id !== coachId),
             sessions: newSessions,
@@ -236,8 +242,13 @@ export default function AdminPage() {
                     } 
                     // NEW: Check for old format (Config) and convert it
                     else if (parsedData.gyms && parsedData.teams && parsedData.sessions) {
+                         const convertedSessions = parsedData.sessions.map((s: any) => {
+                            const { coachId, ...rest } = s;
+                            return { ...rest, coachIds: coachId ? [coachId] : [] };
+                        });
                         const newConfig: Config = {
                             ...parsedData,
+                            sessions: convertedSessions,
                             id: `config-imported-${Date.now()}`,
                             name: "Configurazione Importata",
                             coaches: parsedData.coaches || [], // Ensure coaches is present
@@ -646,7 +657,7 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
                 </Tooltip>
                  <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={handleSave} className="text-green-600 border-green-600 hover:bg-green-100 hover:text-green-700">
+                        <Button variant="outline" size="icon" onClick={handleSave} className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
                             <Check className="h-5 w-5"/>
                         </Button>
                     </TooltipTrigger>
@@ -675,7 +686,7 @@ function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
             id: `session-${team.id}-${Date.now()}`,
             teamId: team.id,
             duration: 90,
-            coachId: null,
+            coachIds: [],
             gymId: null,
             day: null,
             startTime: null
@@ -757,7 +768,7 @@ function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
                 </Tooltip>
                  <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={handleSave} className="text-green-600 border-green-600 hover:bg-green-100 hover:text-green-700">
+                        <Button variant="outline" size="icon" onClick={handleSave} className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
                            <Check className="h-5 w-5"/>
                         </Button>
                     </TooltipTrigger>
@@ -787,7 +798,7 @@ function CoachEditForm({ coach, onSave, onCancel }: CoachEditFormProps) {
             </div>
             <div className="flex justify-end gap-2 mt-4">
                  <Button variant="ghost" size="icon" onClick={onCancel}><X className="h-5 w-5"/></Button>
-                 <Button variant="outline" size="icon" onClick={() => onSave({...coach, name})} className="text-green-600 border-green-600 hover:bg-green-100 hover:text-green-700">
+                 <Button variant="outline" size="icon" onClick={() => onSave({...coach, name})} className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
                     <Check className="h-5 w-5"/>
                  </Button>
             </div>

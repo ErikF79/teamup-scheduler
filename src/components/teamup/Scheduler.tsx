@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Header } from "@/components/teamup/Header";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MultiSelect } from "react-multi-select-component";
 
 
 // --- CONSTANTS ---
@@ -47,8 +47,8 @@ interface SchedulerContextType {
   coaches: Coach[];
   teamColors: { [key: string]: string };
   moveSession: (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null) => boolean;
-  assignCoachToSession: (coachId: string | null, sessionId: string) => void;
-  updateSessionDetails: (sessionId: string, newStartTime: number, newCoachId: string | null) => boolean;
+  assignCoachToSession: (coachId: string, sessionId: string) => void;
+  updateSessionDetails: (sessionId: string, newStartTime: number, newCoachIds: string[]) => boolean;
   getSessionsByGymAndDay: (gymId: string, day: number) => Session[];
   getUnassignedSessions: () => Session[];
   getUnassignedCoaches: () => Coach[];
@@ -112,6 +112,13 @@ function Scheduler() {
     if (!config.coaches) {
         config.coaches = [];
     }
+    // Ensure coachIds is an array for every session for backward compatibility
+    config.sessions = config.sessions.map(s => {
+        const coachIds = (s as any).coachId ? [(s as any).coachId] : (s.coachIds || []);
+        const { coachId, ...rest } = s as any;
+        return { ...rest, coachIds: Array.isArray(coachIds) ? coachIds : [] };
+    });
+
     return config;
   }, [appData]);
 
@@ -209,22 +216,25 @@ function Scheduler() {
     return true;
   };
 
-  const assignCoachToSession = (coachId: string | null, sessionId: string) => {
-      const newSessions = activeConfig.sessions.map(s => 
-          s.id === sessionId ? { ...s, coachId } : s
-      );
+  const assignCoachToSession = (coachId: string, sessionId: string) => {
+      const newSessions = activeConfig.sessions.map(s => {
+        if (s.id === sessionId) {
+            // Avoid adding duplicates
+            const newCoachIds = s.coachIds.includes(coachId) ? s.coachIds : [...s.coachIds, coachId];
+            return { ...s, coachIds: newCoachIds };
+        }
+        return s;
+      });
       updateSessions(newSessions);
       const coach = activeConfig.coaches.find(c => c.id === coachId);
       const session = activeConfig.sessions.find(s => s.id === sessionId);
       const team = activeConfig.teams.find(t => t.id === session?.teamId);
       if(coach && team) {
         toast({ title: "Coach Assegnato", description: `${coach.name} è stato assegnato alla sessione di ${team.name}.` });
-      } else {
-        toast({ title: "Coach Rimosso", description: `Il coach è stato rimosso dalla sessione.` });
       }
   };
 
-    const updateSessionDetails = (sessionId: string, newStartTime: number, newCoachId: string | null): boolean => {
+    const updateSessionDetails = (sessionId: string, newStartTime: number, newCoachIds: string[]): boolean => {
         const sessionToUpdate = activeConfig.sessions.find(s => s.id === sessionId);
         if (!sessionToUpdate || !sessionToUpdate.gymId || !sessionToUpdate.day) return false;
         
@@ -236,7 +246,7 @@ function Scheduler() {
         }
         
         const newSessions = activeConfig.sessions.map(s => 
-            s.id === sessionId ? { ...s, startTime: newStartTime, coachId: newCoachId } : s
+            s.id === sessionId ? { ...s, startTime: newStartTime, coachIds: newCoachIds } : s
         );
         updateSessions(newSessions);
         toast({ title: "Sessione Aggiornata", description: "Le modifiche sono state salvate." });
@@ -253,7 +263,7 @@ function Scheduler() {
   }
 
   const getUnassignedCoaches = () => {
-      const assignedCoachIds = new Set(activeConfig.sessions.filter(s => s.coachId).map(s => s.coachId));
+      const assignedCoachIds = new Set(activeConfig.sessions.flatMap(s => s.coachIds || []));
       return activeConfig.coaches.filter(c => !assignedCoachIds.has(c.id));
   }
   
@@ -447,7 +457,12 @@ interface SessionCardProps {
 const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(({ session, isDraggable = true }, ref) => {
     const { teams, teamColors, setEditingSession, coaches } = useScheduler();
     const team = teams.find(t => t.id === session.teamId);
-    const coach = coaches.find(c => c.id === session.coachId);
+    
+    const assignedCoaches = useMemo(() => 
+        coaches.filter(c => session.coachIds.includes(c.id)), 
+    [coaches, session.coachIds]);
+    const coachNames = assignedCoaches.map(c => c.name).join(', ');
+
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
         if (!isDraggable) {
@@ -497,9 +512,9 @@ const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(({ sessio
                     </p>
                 )}
                  <p className="text-xs text-muted-foreground">{session.duration} min</p>
-                {coach && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1 truncate">
-                        <User className="h-3 w-3"/> {coach.name}
+                {coachNames && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1 truncate" title={coachNames}>
+                        <User className="h-3 w-3"/> {coachNames}
                     </p>
                 )}
             </div>
@@ -567,7 +582,7 @@ const UnassignedCoachesColumn = () => {
     const { coaches, sessions } = useScheduler();
 
     const assignedCoachIds = useMemo(() => 
-        new Set(sessions.filter(s => s.coachId !== null).map(s => s.coachId))
+        new Set(sessions.flatMap(s => s.coachIds || []))
     , [sessions]);
 
     const unassignedCoaches = useMemo(() => 
@@ -853,14 +868,20 @@ interface EditSessionDialogProps {
 function EditSessionDialog({ session }: EditSessionDialogProps) {
     const { teams, coaches, setEditingSession, updateSessionDetails } = useScheduler();
     const [newTime, setNewTime] = useState(formatTime(session.startTime));
-    const [selectedCoachId, setSelectedCoachId] = useState<string | null>(session.coachId);
+    
+    const coachOptions = useMemo(() => coaches.map(c => ({ label: c.name, value: c.id })), [coaches]);
+    
+    const [selectedCoaches, setSelectedCoaches] = useState(
+        coachOptions.filter(opt => (session.coachIds || []).includes(opt.value))
+    );
     
     const team = teams.find(t => t.id === session.teamId);
 
     const handleSave = () => {
         const newStartTime = timeToMinutes(newTime);
         if (newStartTime !== null && session.gymId && session.day) {
-           const success = updateSessionDetails(session.id, newStartTime, selectedCoachId);
+           const newCoachIds = selectedCoaches.map(c => c.value);
+           const success = updateSessionDetails(session.id, newStartTime, newCoachIds);
            if (success) {
                setEditingSession(null);
            }
@@ -892,22 +913,25 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
                     </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="coach-select" className="text-right">Coach</Label>
-                        <Select onValueChange={(value) => setSelectedCoachId(value === 'none' ? null : value)} defaultValue={selectedCoachId || 'none'}>
-                            <SelectTrigger id="coach-select" className="col-span-3">
-                                <SelectValue placeholder="Seleziona un coach" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">Nessun coach</SelectItem>
-                                {coaches.map(coach => (
-                                    <SelectItem key={coach.id} value={coach.id}>{coach.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="col-span-3">
+                            <MultiSelect
+                                options={coachOptions}
+                                value={selectedCoaches}
+                                onChange={setSelectedCoaches}
+                                labelledBy="Seleziona Coach"
+                                overrideStrings={{
+                                    "allItemsAreSelected": "Tutti i coach selezionati.",
+                                    "noOptions": "Nessun coach disponibile",
+                                    "search": "Cerca",
+                                    "selectSomeItems": "Seleziona coach...",
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setEditingSession(null)}>Annulla</Button>
-                    <Button onClick={handleSave}>Salva Modifiche</Button>
+                    <Button onClick={handleSave} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">Salva Modifiche</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -95,7 +95,7 @@ export default function DashboardPage() {
         });
 
          const coachDetails = (data.coaches || []).map(coach => {
-            const coachSessions = data.sessions.filter(s => s.coachId === coach.id);
+            const coachSessions = data.sessions.filter(s => (s.coachIds || []).includes(coach.id));
             const weeklyHours = coachSessions.reduce((sum, s) => sum + s.duration / 60, 0);
             const seasonHours = weeklyHours * seasonWeeks;
             return {
@@ -341,5 +341,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    

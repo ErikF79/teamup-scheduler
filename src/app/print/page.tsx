@@ -244,14 +244,15 @@ const GymPrintView = ({ gymId, data }: { gymId: string, data: Config }) => {
                         
                         return daySessions.map((session, index) => {
                              const team = data.teams.find(t => t.id === session.teamId);
-                             const coach = (data.coaches || []).find(c => c.id === session.coachId);
+                             const coaches = (data.coaches || []).filter(c => (session.coachIds || []).includes(c.id));
+                             const coachNames = coaches.map(c => c.name).join(', ');
                              return (
                                 <TableRow key={session.id}>
                                     {index === 0 && <TableCell rowSpan={daySessions.length} className="font-medium align-top">{day.name}</TableCell>}
                                     <TableCell>{formatTime(session.startTime)}</TableCell>
                                     <TableCell>{formatTime(session.startTime! + session.duration)}</TableCell>
                                     <TableCell>{team?.name}</TableCell>
-                                    <TableCell>{coach?.name || 'N/D'}</TableCell>
+                                    <TableCell>{coachNames || 'N/D'}</TableCell>
                                     <TableCell className="text-right">{session.duration} min</TableCell>
                                 </TableRow>
                              )
@@ -290,14 +291,15 @@ const TeamPrintView = ({ teamId, data }: { teamId: string, data: Config }) => {
                          .map(session => {
                             const gym = data.gyms.find(g => g.id === session.gymId);
                             const day = DAYS_OF_WEEK.find(d => d.key === session.day);
-                            const coach = (data.coaches || []).find(c => c.id === session.coachId);
+                            const coaches = (data.coaches || []).filter(c => (session.coachIds || []).includes(c.id));
+                            const coachNames = coaches.map(c => c.name).join(', ');
                             return (
                                 <TableRow key={session.id}>
                                     <TableCell className="font-medium">{day?.name}</TableCell>
                                     <TableCell>{formatTime(session.startTime)}</TableCell>
                                     <TableCell>{formatTime(session.startTime! + session.duration)}</TableCell>
                                     <TableCell>{gym?.name}</TableCell>
-                                    <TableCell>{coach?.name || 'N/D'}</TableCell>
+                                    <TableCell>{coachNames || 'N/D'}</TableCell>
                                     <TableCell className="text-right">{session.duration} min</TableCell>
                                 </TableRow>
                             )
@@ -346,13 +348,14 @@ const DayPrintView = ({ dayKey, data }: { dayKey: number, data: Config }) => {
                         <TableBody>
                             {gym.sessions.map(session => {
                                  const team = data.teams.find(t => t.id === session.teamId);
-                                 const coach = (data.coaches || []).find(c => c.id === session.coachId);
+                                 const coaches = (data.coaches || []).filter(c => (session.coachIds || []).includes(c.id));
+                                 const coachNames = coaches.map(c => c.name).join(', ');
                                  return (
                                     <TableRow key={session.id}>
                                         <TableCell>{formatTime(session.startTime)}</TableCell>
                                         <TableCell>{formatTime(session.startTime! + session.duration)}</TableCell>
                                         <TableCell className="font-medium">{team?.name}</TableCell>
-                                        <TableCell>{coach?.name || 'N/D'}</TableCell>
+                                        <TableCell>{coachNames || 'N/D'}</TableCell>
                                         <TableCell className="text-right">{session.duration} min</TableCell>
                                     </TableRow>
                                  )
@@ -371,7 +374,7 @@ const DayPrintView = ({ dayKey, data }: { dayKey: number, data: Config }) => {
 
 const CoachPrintView = ({ coachId, data }: { coachId: string, data: Config }) => {
     const coach = (data.coaches || []).find(c => c.id === coachId);
-    const sessions = data.sessions.filter(s => s.coachId === coachId && s.gymId);
+    const sessions = data.sessions.filter(s => (s.coachIds || []).includes(coachId) && s.gymId);
 
     if (!coach) return <div>Coach non trovato</div>;
 

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
@@ -50,7 +49,7 @@ export default function AdminPage() {
             try {
                 if (savedData) {
                     const parsedData = JSON.parse(savedData);
-                    if (parsedData.configurations && parsedData.activeConfigurationId) {
+                    if (parsedData.configurations && parsedData.configurations.length > 0 && parsedData.activeConfigurationId) {
                         setAppData(parsedData);
                         return;
                     }
@@ -201,11 +200,27 @@ export default function AdminPage() {
                 const text = e.target?.result;
                 if (typeof (text) === 'string') {
                     const parsedData = JSON.parse(text);
-                    // Basic validation
+                    
+                    // NEW: Check for new format (AppData) first
                     if (parsedData.configurations && parsedData.activeConfigurationId) {
                         updateAppData(parsedData);
                         toast({ title: "Importazione completata", description: "Le configurazioni sono state caricate." });
-                    } else {
+                    } 
+                    // NEW: Check for old format (Config) and convert it
+                    else if (parsedData.gyms && parsedData.teams && parsedData.sessions) {
+                        const newConfig: Config = {
+                            ...parsedData,
+                            id: `config-imported-${Date.now()}`,
+                            name: "Configurazione Importata"
+                        };
+                        const newAppData = {
+                            configurations: [...appData.configurations, newConfig],
+                            activeConfigurationId: newConfig.id
+                        };
+                        updateAppData(newAppData);
+                        toast({ title: "Importazione completata", description: "La vecchia configurazione è stata importata e salvata come una nuova." });
+                    }
+                    else {
                          toast({ title: "Errore", description: "File JSON non valido o malformato.", variant: "destructive" });
                     }
                 }
@@ -255,6 +270,9 @@ export default function AdminPage() {
              toast({ title: "Azione non consentita", description: "Non puoi eliminare l'unica configurazione esistente.", variant: "destructive" });
             return;
         }
+        if (!confirm(`Sei sicuro di voler eliminare la configurazione "${activeConfig.name}"?`)) {
+            return;
+        }
         const newConfigurations = appData.configurations.filter(c => c.id !== activeConfig.id);
         const newActiveId = newConfigurations[0].id;
         updateAppData({ configurations: newConfigurations, activeConfigurationId: newActiveId });
@@ -276,7 +294,7 @@ export default function AdminPage() {
                              <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                                       <Upload className="mr-2 h-4 w-4" /> Importa Tutto
+                                       <Upload className="mr-2 h-4 w-4" /> Importa
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent><p>Importa un file con una o più configurazioni.</p></TooltipContent>
@@ -295,6 +313,7 @@ export default function AdminPage() {
                             <CardDescription>Salva, carica e gestisci diverse configurazioni di palestre e squadre.</CardDescription>
                         </CardHeader>
                         <CardContent className="flex items-center gap-4">
+                             <Label>Configurazione Attiva:</Label>
                             <Select value={activeConfig.id} onValueChange={handleSetActiveConfig}>
                                 <SelectTrigger className="w-[280px]">
                                     <SelectValue placeholder="Seleziona una configurazione" />
@@ -348,7 +367,23 @@ export default function AdminPage() {
                                                 <span className="font-medium">{gym.name}</span>
                                                 <div className="flex items-center gap-2">
                                                     <Button variant="ghost" size="icon" onClick={() => setEditingGymId(gym.id)}><Pencil className="h-4 w-4" /></Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteGym(gym.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                          <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                            <AlertDialogTitle>Sei sicuro di voler eliminare {gym.name}?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Questa azione è irreversibile. Tutte le sessioni assegnate a questa palestra verranno spostate tra quelle "da assegnare".
+                                                            </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                            <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteGym(gym.id)} className="bg-destructive hover:bg-destructive/90">Elimina</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
                                                 </div>
                                             </div>
                                         )
@@ -381,7 +416,23 @@ export default function AdminPage() {
                                                 <span className="font-medium">{team.name}</span>
                                                 <div className="flex items-center gap-2">
                                                     <Button variant="ghost" size="icon" onClick={() => setEditingTeamId(team.id)}><Pencil className="h-4 w-4" /></Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteTeam(team.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                          <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                            <AlertDialogTitle>Sei sicuro di voler eliminare {team.name}?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Questa azione è irreversibile. Verranno eliminate anche tutte le sessioni di allenamento associate.
+                                                            </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                            <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteTeam(team.id)} className="bg-destructive hover:bg-destructive/90">Elimina</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
                                                 </div>
                                             </div>
                                         )
@@ -451,11 +502,9 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
     
     const timeOptions = useMemo(() => {
         const options = [];
-        options.push(<option key="closed" value={0}>Chiuso</option>);
          for (let h = 0; h < 24; h++) {
              for (let m = 0; m < 60; m += 15) {
                 const totalMinutes = h * 60 + m;
-                if (totalMinutes === 0) continue; 
                 const timeString = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                 options.push(<option key={totalMinutes} value={totalMinutes}>{timeString}</option>);
              }
@@ -465,10 +514,6 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
 
     const endTimeOptions = (startMinutes: number) => {
         const options = [];
-        if (startMinutes === 0) {
-             options.push(<option key={0} value={0}>00:00</option>);
-             return options;
-        }
          for (let h = 0; h < 24; h++) {
              for (let m = 0; m < 60; m += 15) {
                 const totalMinutes = h * 60 + m;
@@ -604,7 +649,7 @@ function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
                     </Button>
                 </div>
                 {sessionsData.map((session, index) => (
-                    <div key={session.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                    <div key={session.id} className="grid grid-cols-[1fr_auto] items-center gap-2 p-2 border rounded-md">
                          <div className="flex items-center gap-2">
                             <Label htmlFor={`session-duration-${session.id}`} className="text-xs">
                                 Sessione {index + 1} (min)
@@ -619,7 +664,7 @@ function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
                                 className="h-8 w-24"
                              />
                         </div>
-                        <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => handleRemoveSession(session.id)}>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleRemoveSession(session.id)}>
                             <Trash className="h-4 w-4"/>
                         </Button>
                     </div>
@@ -650,3 +695,5 @@ function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
         </div>
     );
 }
+
+    

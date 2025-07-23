@@ -99,48 +99,34 @@ export default function AdminPage() {
         const newTeam: Team = {
             id: newTeamId,
             name: "Nuova Squadra",
-            sessionsPerWeek: 2,
-            sessionDuration: 90,
             seasonStartDate: '2025-09-05',
             seasonEndDate: '2026-05-30',
         };
-        const newSessions: Session[] = Array.from({ length: newTeam.sessionsPerWeek }, (_, i) => ({
-            id: `session-${newTeamId}-${i + 1}`,
+        // Add one default session
+        const newSession: Session = {
+            id: `session-${newTeamId}-1`,
             teamId: newTeamId,
-            duration: newTeam.sessionDuration,
+            duration: 90, // default duration
             gymId: null,
             day: null,
             startTime: null,
-        }));
+        };
         const newTeamColors = { ...data.teamColors, [newTeamId]: `hsl(${Math.random() * 360}, 70%, 50%)` };
 
         updateData({
             teams: [...data.teams, newTeam],
-            sessions: [...data.sessions, ...newSessions],
+            sessions: [...data.sessions, newSession],
             teamColors: newTeamColors,
         });
     };
 
-    const handleUpdateTeam = (updatedTeam: Team) => {
-        const oldTeam = data.teams.find(t => t.id === updatedTeam.id);
-        let newSessions = [...data.sessions];
-
-        if (oldTeam && (oldTeam.sessionsPerWeek !== updatedTeam.sessionsPerWeek || oldTeam.sessionDuration !== updatedTeam.sessionDuration)) {
-            // Remove old sessions
-            newSessions = newSessions.filter(s => s.teamId !== updatedTeam.id);
-            // Add new sessions
-            const sessionsToAdd: Session[] = Array.from({ length: updatedTeam.sessionsPerWeek }, (_, i) => ({
-                id: `session-${updatedTeam.id}-${i + 1}`,
-                teamId: updatedTeam.id,
-                duration: updatedTeam.sessionDuration,
-                gymId: null, day: null, startTime: null
-            }));
-            newSessions.push(...sessionsToAdd);
-        }
-
+    const handleUpdateTeam = (updatedTeam: Team, teamSessions: Session[]) => {
+        // Get all sessions that do NOT belong to the team being updated
+        const otherTeamsSessions = data.sessions.filter(s => s.teamId !== updatedTeam.id);
+        
         updateData({
-            teams: data.teams.map(t => t.id === updatedTeam.id ? updatedTeam : t),
-            sessions: newSessions,
+            teams: data.teams.map(t => (t.id === updatedTeam.id ? updatedTeam : t)),
+            sessions: [...otherTeamsSessions, ...teamSessions],
         });
         setEditingTeamId(null);
     };
@@ -249,7 +235,13 @@ export default function AdminPage() {
                             <div className="space-y-3">
                                 {data.teams.map(team =>
                                     editingTeamId === team.id ? (
-                                        <TeamEditForm key={team.id} team={team} onSave={handleUpdateTeam} onCancel={() => setEditingTeamId(null)} />
+                                        <TeamEditForm 
+                                            key={team.id} 
+                                            team={team} 
+                                            sessions={data.sessions.filter(s => s.teamId === team.id)}
+                                            onSave={handleUpdateTeam} 
+                                            onCancel={() => setEditingTeamId(null)} 
+                                        />
                                     ) : (
                                         <div key={team.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
                                             <span className="font-medium">{team.name}</span>
@@ -417,42 +409,89 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
 // --- Team Edit Form Component ---
 interface TeamEditFormProps {
     team: Team;
-    onSave: (team: Team) => void;
+    sessions: Session[];
+    onSave: (team: Team, sessions: Session[]) => void;
     onCancel: () => void;
 }
-function TeamEditForm({ team, onSave, onCancel }: TeamEditFormProps) {
-    const [formData, setFormData] = useState(team);
+function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
+    const [teamData, setTeamData] = useState(team);
+    const [sessionsData, setSessionsData] = useState(sessions);
+
+    const handleAddSession = () => {
+        const newSession: Session = {
+            id: `session-${team.id}-${Date.now()}`,
+            teamId: team.id,
+            duration: 90,
+            gymId: null,
+            day: null,
+            startTime: null
+        };
+        setSessionsData([...sessionsData, newSession]);
+    };
+
+    const handleRemoveSession = (sessionId: string) => {
+        setSessionsData(sessionsData.filter(s => s.id !== sessionId));
+    };
+    
+    const handleSessionDurationChange = (sessionId: string, duration: number) => {
+         setSessionsData(sessionsData.map(s => s.id === sessionId ? {...s, duration: duration} : s));
+    }
 
     const handleSave = () => {
-        onSave(formData);
+        onSave(teamData, sessionsData);
     };
 
     return (
         <div className="p-4 border rounded-lg space-y-4 bg-secondary/30">
             <div className="space-y-2">
                 <Label htmlFor={`team-name-${team.id}`}>Nome Squadra</Label>
-                <Input id={`team-name-${team.id}`} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                <Input id={`team-name-${team.id}`} value={teamData.name} onChange={(e) => setTeamData({ ...teamData, name: e.target.value })} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor={`team-sessions-${team.id}`}>Allenamenti/sett.</Label>
-                    <Input id={`team-sessions-${team.id}`} type="number" min="1" value={formData.sessionsPerWeek} onChange={(e) => setFormData({ ...formData, sessionsPerWeek: parseInt(e.target.value, 10) || 1 })} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor={`team-duration-${team.id}`}>Durata (min)</Label>
-                    <Input id={`team-duration-${team.id}`} type="number" min="30" step="15" value={formData.sessionDuration} onChange={(e) => setFormData({ ...formData, sessionDuration: parseInt(e.target.value, 10) || 30 })} />
-                </div>
-            </div>
+
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor={`team-start-${team.id}`}>Inizio Stagione</Label>
-                    <Input id={`team-start-${team.id}`} type="date" value={formData.seasonStartDate} onChange={(e) => setFormData({ ...formData, seasonStartDate: e.target.value })} />
+                    <Input id={`team-start-${team.id}`} type="date" value={teamData.seasonStartDate} onChange={(e) => setTeamData({ ...teamData, seasonStartDate: e.target.value })} />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor={`team-end-${team.id}`}>Fine Stagione</Label>
-                    <Input id={`team-end-${team.id}`} type="date" value={formData.seasonEndDate} onChange={(e) => setFormData({ ...formData, seasonEndDate: e.target.value })} />
+                    <Input id={`team-end-${team.id}`} type="date" value={teamData.seasonEndDate} onChange={(e) => setTeamData({ ...teamData, seasonEndDate: e.target.value })} />
                 </div>
             </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+                 <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-sm">Sessioni di Allenamento</h4>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleAddSession}>
+                        <Plus className="h-4 w-4"/>
+                    </Button>
+                </div>
+                {sessionsData.map((session, index) => (
+                    <div key={session.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                         <div className="flex items-center gap-2">
+                            <Label htmlFor={`session-duration-${session.id}`} className="text-xs">
+                                Sessione {index + 1} (min)
+                            </Label>
+                            <Input 
+                                id={`session-duration-${session.id}`} 
+                                type="number" 
+                                min="30" 
+                                step="15" 
+                                value={session.duration}
+                                onChange={(e) => handleSessionDurationChange(session.id, parseInt(e.target.value, 10) || 30)}
+                                className="h-8 w-24"
+                             />
+                        </div>
+                        <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => handleRemoveSession(session.id)}>
+                            <Trash className="h-4 w-4"/>
+                        </Button>
+                    </div>
+                ))}
+                 {sessionsData.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nessuna sessione definita.</p>}
+            </div>
+
              <div className="flex justify-end gap-2 mt-4">
                 <Tooltip>
                     <TooltipTrigger asChild>

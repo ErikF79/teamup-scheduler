@@ -60,9 +60,8 @@ export default function DashboardPage() {
             return total + gymHours;
         }, 0);
 
-        const totalHoursRequiredPerWeek = data.teams.reduce((total, team) => {
-            const teamHours = (team.sessionDuration / 60) * team.sessionsPerWeek;
-            return total + teamHours;
+        const totalHoursRequiredPerWeek = data.sessions.reduce((total, session) => {
+            return total + (session.duration / 60);
         }, 0);
         
         // Use the first team's season dates as representative for the calculation
@@ -74,12 +73,14 @@ export default function DashboardPage() {
         const totalHoursRequiredPerSeason = totalHoursRequiredPerWeek * seasonWeeks;
         
         const teamDetails = data.teams.map(team => {
-             const weeklyHours = (team.sessionDuration / 60) * team.sessionsPerWeek;
+             const teamSessions = data.sessions.filter(s => s.teamId === team.id);
+             const weeklyHours = teamSessions.reduce((sum, s) => sum + s.duration / 60, 0);
              const seasonHours = weeklyHours * seasonWeeks;
              return {
                  ...team,
                  weeklyHours,
-                 seasonHours
+                 seasonHours,
+                 sessionCount: teamSessions.length
              }
         });
         
@@ -208,6 +209,7 @@ export default function DashboardPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Squadra</TableHead>
+                                        <TableHead>Sessioni</TableHead>
                                         <TableHead className="text-right">Ore/Settimana</TableHead>
                                         <TableHead className="text-right">Ore/Stagione</TableHead>
                                     </TableRow>
@@ -216,6 +218,7 @@ export default function DashboardPage() {
                                     {stats.teamDetails.map(team => (
                                         <TableRow key={team.id}>
                                             <TableCell className="font-medium">{team.name}</TableCell>
+                                            <TableCell>{team.sessionCount}</TableCell>
                                             <TableCell className="text-right">{team.weeklyHours.toFixed(2)} h</TableCell>
                                             <TableCell className="text-right">{team.seasonHours.toFixed(2)} h</TableCell>
                                         </TableRow>

@@ -94,15 +94,15 @@ export default function Scheduler() {
         const sessionEndMinutes = newStartTime + updatedSession.duration;
 
         if (gym && availabilitySlots.length > 0) {
-             // Check if every minute of the session falls within an available slot
-             let isWithinAvailableSlot = true;
-             for (let minute = newStartTime; minute < sessionEndMinutes; minute++) {
-                 const isMinuteAvailable = availabilitySlots.some(slot => minute >= slot.start && minute < slot.end);
-                 if (!isMinuteAvailable) {
-                     isWithinAvailableSlot = false;
-                     break;
-                 }
-             }
+            let isWithinAvailableSlot = true;
+            // Check if every minute of the session falls within an available slot
+            for (let minute = newStartTime; minute < sessionEndMinutes; minute++) {
+                const isMinuteAvailable = availabilitySlots.some(slot => minute >= slot.start && minute < slot.end);
+                if (!isMinuteAvailable) {
+                    isWithinAvailableSlot = false;
+                    break;
+                }
+            }
 
              if (!isWithinAvailableSlot) {
                  toast({
@@ -471,14 +471,12 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     const slots = dayAvailability?.slots || [];
     const totalMinutesInView = (MASTER_END_HOUR - MASTER_START_HOUR) * 60;
     
-    // Create an array representing all 15-minute intervals in the view
     const allIntervals = Array.from({length: totalMinutesInView / 15}, (_, i) => {
         const start = MASTER_START_HOUR * 60 + i * 15;
         const end = start + 15;
         return { start, end };
     });
 
-    // Determine which of these intervals are unavailable
     const unavailableIntervals = allIntervals.filter(interval => 
         !slots.some(slot => interval.start >= slot.start && interval.end <= slot.end)
     );
@@ -499,7 +497,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
         if (contentRect.height <= 0) return;
 
         const minutesFromCellTop = (dropY / contentRect.height) * totalMinutesInView;
-        const snappedMinutes = Math.round(minutesFromCellTop / 15) * 15;
+        const snappedMinutes = Math.floor(minutesFromCellTop / 15) * 15;
         const newStartTime = (MASTER_START_HOUR * 60) + snappedMinutes;
 
         moveSession(sessionId, gym.id, dayKey, newStartTime);
@@ -516,8 +514,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     return (
         <div
-            className="row-start-2 col-start-auto relative border-b border-l transition-colors"
-            style={{ height: `${totalHeightInPx}px`, backgroundColor: '#FFFFFF' }}
+            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-background"
+            style={{ height: `${totalHeightInPx}px` }}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -525,7 +523,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
             {/* Grid lines */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                  {allIntervals.map((_, i) => (
-                    <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-gray-300 dark:border-gray-700' : 'border-gray-200/70 dark:border-gray-800/70'}`}/>
+                    <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-border' : 'border-border/50'}`}/>
                 ))}
             </div>
              {/* Background masks for unavailable times */}
@@ -536,8 +534,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                     return (
                         <div 
                             key={index} 
-                            className="absolute w-full bg-muted/50" 
-                            style={{ top: `${top}%`, height: `${height}%` }}
+                            className="absolute w-full bg-[repeating-linear-gradient(45deg,hsl(var(--border)),hsl(var(--border))_4px,transparent_4px,transparent_10px)]" 
+                            style={{ top: `${top}%`, height: `${height}%`, backgroundSize: '10px 10px' }}
                         />
                     );
                 })}
@@ -616,12 +614,3 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
 }
 
     
-
-
-
-    
-
-
-
-    
-

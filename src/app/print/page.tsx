@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { initialData as mockData, Gym, Team, Session, Config, AppData } from '@/lib/teamup';
-import { ArrowLeft, Printer, Building2, Users, Calendar, AlertCircle } from 'lucide-react';
+import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach } from '@/lib/teamup';
+import { ArrowLeft, Printer, Building2, Users, Calendar, AlertCircle, UserCheck } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 
@@ -30,7 +30,7 @@ function formatTime(minutesFromDayStart: number | null) {
 
 export default function PrintPage() {
     const [data, setData] = useState<Config>({ ...mockData });
-    const [viewType, setViewType] = useState<'gym' | 'team' | 'day'>('gym');
+    const [viewType, setViewType] = useState<'gym' | 'team' | 'day' | 'coach'>('gym');
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
     const fetchData = useCallback(() => {
@@ -45,6 +45,7 @@ export default function PrintPage() {
                         // Set initial selectedId based on viewType
                         if (viewType === 'gym' && activeConfig.gyms.length > 0) setSelectedId(activeConfig.gyms[0].id);
                         if (viewType === 'team' && activeConfig.teams.length > 0) setSelectedId(activeConfig.teams[0].id);
+                        if (viewType === 'coach' && (activeConfig.coaches || []).length > 0) setSelectedId(activeConfig.coaches[0].id);
                         if (viewType === 'day') setSelectedId('1');
                         return;
                     }
@@ -64,6 +65,7 @@ export default function PrintPage() {
         // Reset selectedId when viewType changes
         if (viewType === 'gym' && data.gyms.length > 0) setSelectedId(data.gyms[0].id);
         else if (viewType === 'team' && data.teams.length > 0) setSelectedId(data.teams[0].id);
+        else if (viewType === 'coach' && (data.coaches || []).length > 0) setSelectedId(data.coaches[0].id);
         else if (viewType === 'day') setSelectedId('1');
         else setSelectedId(null);
     }, [viewType, data]);
@@ -93,6 +95,8 @@ export default function PrintPage() {
                 return <TeamPrintView teamId={selectedId} data={data} />;
             case 'day':
                 return <DayPrintView dayKey={parseInt(selectedId, 10)} data={data} />;
+            case 'coach':
+                return <CoachPrintView coachId={selectedId} data={data} />;
             default:
                 return null;
         }
@@ -116,7 +120,7 @@ export default function PrintPage() {
                         <CardTitle>Opzioni di Stampa</CardTitle>
                         <CardDescription>Scegli cosa vuoi visualizzare. Il contenuto verrà generato qui sotto in un formato A4, pronto per la stampa o il salvataggio in PDF.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent>
                         <div className="flex flex-wrap items-end gap-4">
                             <div>
                                 <label className="text-sm font-medium mb-1 block">Tipo di Vista</label>
@@ -127,6 +131,7 @@ export default function PrintPage() {
                                     <SelectContent>
                                         <SelectItem value="gym"><Building2 className="mr-2 h-4 w-4"/>Per Palestra</SelectItem>
                                         <SelectItem value="team"><Users className="mr-2 h-4 w-4"/>Per Squadra</SelectItem>
+                                        <SelectItem value="coach"><UserCheck className="mr-2 h-4 w-4"/>Per Coach</SelectItem>
                                         <SelectItem value="day"><Calendar className="mr-2 h-4 w-4"/>Per Giorno</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -150,6 +155,16 @@ export default function PrintPage() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             {data.teams.map(team => <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                            }
+                             {viewType === 'coach' && 
+                                    <Select value={selectedId ?? ""} onValueChange={setSelectedId}>
+                                        <SelectTrigger className="w-[280px]">
+                                            <SelectValue placeholder="Seleziona coach" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {(data.coaches || []).map(coach => <SelectItem key={coach.id} value={coach.id}>{coach.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                             }
@@ -208,6 +223,7 @@ const GymPrintView = ({ gymId, data }: { gymId: string, data: Config }) => {
                         <TableHead className="w-[15%]">Orario Inizio</TableHead>
                         <TableHead className="w-[15%]">Orario Fine</TableHead>
                         <TableHead>Squadra</TableHead>
+                        <TableHead>Coach</TableHead>
                         <TableHead className="text-right w-[15%]">Durata</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -221,19 +237,21 @@ const GymPrintView = ({ gymId, data }: { gymId: string, data: Config }) => {
                             return (
                                 <TableRow key={day.key}>
                                     <TableCell className="font-medium">{day.name}</TableCell>
-                                    <TableCell colSpan={4} className="text-center text-muted-foreground">Nessun allenamento programmato</TableCell>
+                                    <TableCell colSpan={5} className="text-center text-muted-foreground">Nessun allenamento programmato</TableCell>
                                 </TableRow>
                             );
                         }
                         
                         return daySessions.map((session, index) => {
                              const team = data.teams.find(t => t.id === session.teamId);
+                             const coach = (data.coaches || []).find(c => c.id === session.coachId);
                              return (
                                 <TableRow key={session.id}>
                                     {index === 0 && <TableCell rowSpan={daySessions.length} className="font-medium align-top">{day.name}</TableCell>}
                                     <TableCell>{formatTime(session.startTime)}</TableCell>
                                     <TableCell>{formatTime(session.startTime! + session.duration)}</TableCell>
                                     <TableCell>{team?.name}</TableCell>
+                                    <TableCell>{coach?.name || 'N/D'}</TableCell>
                                     <TableCell className="text-right">{session.duration} min</TableCell>
                                 </TableRow>
                              )
@@ -261,6 +279,7 @@ const TeamPrintView = ({ teamId, data }: { teamId: string, data: Config }) => {
                         <TableHead>Orario Inizio</TableHead>
                         <TableHead>Orario Fine</TableHead>
                         <TableHead>Palestra</TableHead>
+                        <TableHead>Coach</TableHead>
                         <TableHead className="text-right">Durata</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -271,19 +290,21 @@ const TeamPrintView = ({ teamId, data }: { teamId: string, data: Config }) => {
                          .map(session => {
                             const gym = data.gyms.find(g => g.id === session.gymId);
                             const day = DAYS_OF_WEEK.find(d => d.key === session.day);
+                            const coach = (data.coaches || []).find(c => c.id === session.coachId);
                             return (
                                 <TableRow key={session.id}>
                                     <TableCell className="font-medium">{day?.name}</TableCell>
                                     <TableCell>{formatTime(session.startTime)}</TableCell>
                                     <TableCell>{formatTime(session.startTime! + session.duration)}</TableCell>
                                     <TableCell>{gym?.name}</TableCell>
+                                    <TableCell>{coach?.name || 'N/D'}</TableCell>
                                     <TableCell className="text-right">{session.duration} min</TableCell>
                                 </TableRow>
                             )
                         })
                     ) : (
                          <TableRow>
-                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                 Nessun allenamento assegnato a una palestra per questa squadra.
                             </TableCell>
                         </TableRow>
@@ -318,17 +339,20 @@ const DayPrintView = ({ dayKey, data }: { dayKey: number, data: Config }) => {
                                 <TableHead className="w-[20%]">Orario Inizio</TableHead>
                                 <TableHead className="w-[20%]">Orario Fine</TableHead>
                                 <TableHead>Squadra</TableHead>
+                                <TableHead>Coach</TableHead>
                                 <TableHead className="text-right w-[20%]">Durata</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {gym.sessions.map(session => {
                                  const team = data.teams.find(t => t.id === session.teamId);
+                                 const coach = (data.coaches || []).find(c => c.id === session.coachId);
                                  return (
                                     <TableRow key={session.id}>
                                         <TableCell>{formatTime(session.startTime)}</TableCell>
                                         <TableCell>{formatTime(session.startTime! + session.duration)}</TableCell>
                                         <TableCell className="font-medium">{team?.name}</TableCell>
+                                        <TableCell>{coach?.name || 'N/D'}</TableCell>
                                         <TableCell className="text-right">{session.duration} min</TableCell>
                                     </TableRow>
                                  )
@@ -341,6 +365,58 @@ const DayPrintView = ({ dayKey, data }: { dayKey: number, data: Config }) => {
                     Nessuna attività programmata per {day.name}.
                 </div>
             )}
+        </div>
+    );
+};
+
+const CoachPrintView = ({ coachId, data }: { coachId: string, data: Config }) => {
+    const coach = (data.coaches || []).find(c => c.id === coachId);
+    const sessions = data.sessions.filter(s => s.coachId === coachId && s.gymId);
+
+    if (!coach) return <div>Coach non trovato</div>;
+
+    return (
+        <div>
+             <PrintHeader title={coach.name} subtitle="Programma Allenamenti Settimanale" />
+             <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Giorno</TableHead>
+                        <TableHead>Orario Inizio</TableHead>
+                        <TableHead>Orario Fine</TableHead>
+                        <TableHead>Squadra</TableHead>
+                        <TableHead>Palestra</TableHead>
+                        <TableHead className="text-right">Durata</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {sessions.length > 0 ? (
+                        sessions
+                         .sort((a, b) => (a.day ?? 0) - (b.day ?? 0) || (a.startTime ?? 0) - (b.startTime ?? 0))
+                         .map(session => {
+                            const gym = data.gyms.find(g => g.id === session.gymId);
+                            const day = DAYS_OF_WEEK.find(d => d.key === session.day);
+                            const team = data.teams.find(t => t.id === session.teamId);
+                            return (
+                                <TableRow key={session.id}>
+                                    <TableCell className="font-medium">{day?.name}</TableCell>
+                                    <TableCell>{formatTime(session.startTime)}</TableCell>
+                                    <TableCell>{formatTime(session.startTime! + session.duration)}</TableCell>
+                                    <TableCell>{team?.name}</TableCell>
+                                    <TableCell>{gym?.name}</TableCell>
+                                    <TableCell className="text-right">{session.duration} min</TableCell>
+                                </TableRow>
+                            )
+                        })
+                    ) : (
+                         <TableRow>
+                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                Nessun allenamento assegnato per questo coach.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
         </div>
     );
 };

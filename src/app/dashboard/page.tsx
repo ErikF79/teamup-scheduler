@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { initialData as mockData, Gym, Team, Session, Config, AppData } from '@/lib/teamup';
-import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard, Hourglass, Percent } from 'lucide-react';
+import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach } from '@/lib/teamup';
+import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard, Hourglass, Percent, UserCheck } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Progress } from '@/components/ui/progress';
 
@@ -50,6 +50,7 @@ export default function DashboardPage() {
         const numGyms = data.gyms.length;
         const numTeams = data.teams.length;
         const numSessions = data.sessions.length;
+        const numCoaches = (data.coaches || []).length;
 
         const totalHoursAvailablePerWeek = data.gyms.reduce((total, gym) => {
             const gymHours = (gym.availability || []).reduce((sum, day) => {
@@ -63,7 +64,6 @@ export default function DashboardPage() {
             return total + (session.duration / 60);
         }, 0);
         
-        // Use the first team's season dates as representative for the calculation
         const seasonWeeks = data.teams.length > 0 && data.teams[0].seasonStartDate && data.teams[0].seasonEndDate
             ? getWeeksBetween(new Date(data.teams[0].seasonStartDate), new Date(data.teams[0].seasonEndDate))
             : 0;
@@ -94,6 +94,18 @@ export default function DashboardPage() {
             }
         });
 
+         const coachDetails = (data.coaches || []).map(coach => {
+            const coachSessions = data.sessions.filter(s => s.coachId === coach.id);
+            const weeklyHours = coachSessions.reduce((sum, s) => sum + s.duration / 60, 0);
+            const seasonHours = weeklyHours * seasonWeeks;
+            return {
+                ...coach,
+                weeklyHours,
+                seasonHours,
+                sessionCount: coachSessions.length
+            };
+        });
+
         const weeklyChartData = [
             { name: 'Settimanale', 'Ore Disponibili': totalHoursAvailablePerWeek, 'Ore Richieste': totalHoursRequiredPerWeek }
         ];
@@ -107,12 +119,14 @@ export default function DashboardPage() {
             numGyms,
             numTeams,
             numSessions,
+            numCoaches,
             totalHoursAvailablePerWeek,
             totalHoursRequiredPerWeek,
             totalHoursAvailablePerSeason,
             totalHoursRequiredPerSeason,
             teamDetails,
             gymDetails,
+            coachDetails,
             weeklyChartData,
             seasonalChartData,
             usagePercentage
@@ -132,7 +146,7 @@ export default function DashboardPage() {
 
             <main className="p-4 md:p-8">
                 {/* General Stats */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-8">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 mb-8">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Palestre</CardTitle>
@@ -153,7 +167,16 @@ export default function DashboardPage() {
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Allenamenti Settimanali</CardTitle>
+                            <CardTitle className="text-sm font-medium">Coach</CardTitle>
+                            <UserCheck className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.numCoaches}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Allenamenti Sett.</CardTitle>
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -228,9 +251,9 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <div className="grid gap-8 md:grid-cols-2">
+                <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
                      {/* Team Details */}
-                    <Card>
+                    <Card className="xl:col-span-1">
                         <CardHeader>
                             <CardTitle>Dettaglio Squadre</CardTitle>
                             <CardDescription>Riepilogo del carico di lavoro per ogni squadra.</CardDescription>
@@ -240,9 +263,9 @@ export default function DashboardPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Squadra</TableHead>
-                                        <TableHead>Allenamenti/Sett.</TableHead>
-                                        <TableHead className="text-right">Ore/Settimana</TableHead>
-                                        <TableHead className="text-right">Ore/Stagione</TableHead>
+                                        <TableHead>Allen./Sett.</TableHead>
+                                        <TableHead className="text-right">Ore/Sett.</TableHead>
+                                        <TableHead className="text-right">Ore/Stag.</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -259,7 +282,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                      {/* Gym Details */}
-                    <Card>
+                    <Card className="xl:col-span-1">
                         <CardHeader>
                             <CardTitle>Dettaglio Palestre</CardTitle>
                              <CardDescription>Riepilogo delle ore disponibili per ogni struttura.</CardDescription>
@@ -269,7 +292,7 @@ export default function DashboardPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Palestra</TableHead>
-                                        <TableHead className="text-right">Ore Disponibili/Settimana</TableHead>
+                                        <TableHead className="text-right">Ore Disp./Sett.</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -277,6 +300,35 @@ export default function DashboardPage() {
                                         <TableRow key={gym.id}>
                                             <TableCell className="font-medium">{gym.name}</TableCell>
                                             <TableCell className="text-right">{gym.weeklyHours.toFixed(2)} h</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                    {/* Coach Details */}
+                    <Card className="xl:col-span-1">
+                        <CardHeader>
+                            <CardTitle>Dettaglio Coach</CardTitle>
+                            <CardDescription>Riepilogo del carico di lavoro per ogni allenatore.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Coach</TableHead>
+                                        <TableHead>Sess./Sett.</TableHead>
+                                        <TableHead className="text-right">Ore/Sett.</TableHead>
+                                        <TableHead className="text-right">Ore/Stag.</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {stats.coachDetails.map(coach => (
+                                        <TableRow key={coach.id}>
+                                            <TableCell className="font-medium">{coach.name}</TableCell>
+                                            <TableCell>{coach.sessionCount}</TableCell>
+                                            <TableCell className="text-right">{coach.weeklyHours.toFixed(2)} h</TableCell>
+                                            <TableCell className="text-right">{coach.seasonHours.toFixed(2)} h</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

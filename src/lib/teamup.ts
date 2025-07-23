@@ -1,6 +1,5 @@
 
 
-
 // --- TYPES ---
 
 export interface TimeSlot {
@@ -27,10 +26,16 @@ export interface Team {
   seasonEndDate: string; // YYYY-MM-DD
 }
 
+export interface Coach {
+    id: string;
+    name: string;
+}
+
 export interface Session {
   id: string;
   teamId: string;
   duration: number; // in minutes
+  coachId: string | null;
   // scheduling properties
   gymId: string | null;
   day: number | null; // 1 for Monday, 2 for Tuesday, etc.
@@ -42,6 +47,7 @@ export interface Config {
     name: string;
     gyms: Gym[];
     teams: Team[];
+    coaches: Coach[];
     sessions: Session[];
     teamColors: { [key: string]: string };
 }
@@ -86,29 +92,35 @@ const teams: Team[] = [
     { id: 'team-6', name: 'Pulcini U8', seasonStartDate: '2025-09-05', seasonEndDate: '2026-05-30' },
 ];
 
+const coaches: Coach[] = [
+    { id: 'coach-1', name: 'Mario Rossi' },
+    { id: 'coach-2', name: 'Luca Bianchi' },
+    { id: 'coach-3', name: 'Giulia Verdi' },
+];
+
 const sessions: Session[] = [
     // Leoni U12
-    { id: 'session-team-1-1', teamId: 'team-1', duration: 75, gymId: null, day: null, startTime: null },
-    { id: 'session-team-1-2', teamId: 'team-1', duration: 75, gymId: 'gym-1', day: 1, startTime: 1020 },
+    { id: 'session-team-1-1', teamId: 'team-1', duration: 75, coachId: null, gymId: null, day: null, startTime: null },
+    { id: 'session-team-1-2', teamId: 'team-1', duration: 75, coachId: 'coach-1', gymId: 'gym-1', day: 1, startTime: 1020 },
     
     // Tigri U14
-    { id: 'session-team-2-1', teamId: 'team-2', duration: 90, gymId: null, day: null, startTime: null },
-    { id: 'session-team-2-2', teamId: 'team-2', duration: 90, gymId: 'gym-1', day: 3, startTime: 1140 },
-    { id: 'session-team-2-3', teamId: 'team-2', duration: 75, gymId: 'gym-2', day: 2, startTime: 1080 },
+    { id: 'session-team-2-1', teamId: 'team-2', duration: 90, coachId: null, gymId: null, day: null, startTime: null },
+    { id: 'session-team-2-2', teamId: 'team-2', duration: 90, coachId: 'coach-2', gymId: 'gym-1', day: 3, startTime: 1140 },
+    { id: 'session-team-2-3', teamId: 'team-2', duration: 75, coachId: 'coach-1', gymId: 'gym-2', day: 2, startTime: 1080 },
 
     // Aquile U16
-    { id: 'session-team-3-1', teamId: 'team-3', duration: 90, gymId: null, day: null, startTime: null },
-    { id: 'session-team-3-2', teamId: 'team-3', duration: 90, gymId: null, day: null, startTime: null },
+    { id: 'session-team-3-1', teamId: 'team-3', duration: 90, coachId: null, gymId: null, day: null, startTime: null },
+    { id: 'session-team-3-2', teamId: 'team-3', duration: 90, coachId: 'coach-3', gymId: null, day: null, startTime: null },
 
     // Pantere U18
-    { id: 'session-team-4-1', teamId: 'team-4', duration: 120, gymId: 'gym-3', day: 5, startTime: 1200 },
+    { id: 'session-team-4-1', teamId: 'team-4', duration: 120, coachId: 'coach-2', gymId: 'gym-3', day: 5, startTime: 1200 },
 
     // Scoiattoli U10
-    { id: 'session-team-5-1', teamId: 'team-5', duration: 60, gymId: 'gym-2', day: 1, startTime: 1080 }, // Mon 18:00
-    { id: 'session-team-5-2', teamId: 'team-5', duration: 75, gymId: null, day: null, startTime: null },
+    { id: 'session-team-5-1', teamId: 'team-5', duration: 60, coachId: 'coach-3', gymId: 'gym-2', day: 1, startTime: 1080 }, // Mon 18:00
+    { id: 'session-team-5-2', teamId: 'team-5', duration: 75, coachId: null, gymId: null, day: null, startTime: null },
 
     // Pulcini U8
-    { id: 'session-team-6-1', teamId: 'team-6', duration: 60, gymId: 'gym-2', day: 1, startTime: 1020 }, // Mon 17:00
+    { id: 'session-team-6-1', teamId: 'team-6', duration: 60, coachId: 'coach-3', gymId: 'gym-2', day: 1, startTime: 1020 }, // Mon 17:00
 ];
 
 
@@ -117,6 +129,7 @@ export const initialData: Config = {
     name: 'Configurazione di Default',
     gyms,
     teams,
+    coaches,
     sessions,
     teamColors,
 };

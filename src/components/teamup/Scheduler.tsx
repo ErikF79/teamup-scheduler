@@ -3,9 +3,9 @@
 "use client";
 
 import React, { useState, createContext, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
-import { initialData as mockData, Session, Gym, Team, Config, AppData } from '@/lib/teamup';
+import { initialData as mockData, Session, Gym, Team, Config, AppData, Coach } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, GripVertical, Users, CalendarDays, Eye, Clock, RefreshCw } from 'lucide-react';
+import { Building2, GripVertical, Users, CalendarDays, Eye, Clock, RefreshCw, User, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Header } from "@/components/teamup/Header";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 // --- CONSTANTS ---
@@ -43,10 +44,14 @@ interface SchedulerContextType {
   sessions: Session[];
   gyms: Gym[];
   teams: Team[];
+  coaches: Coach[];
   teamColors: { [key: string]: string };
   moveSession: (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null) => boolean;
+  assignCoachToSession: (coachId: string | null, sessionId: string) => void;
+  updateSessionDetails: (sessionId: string, newStartTime: number, newCoachId: string | null) => boolean;
   getSessionsByGymAndDay: (gymId: string, day: number) => Session[];
   getUnassignedSessions: () => Session[];
+  getUnassignedCoaches: () => Coach[];
   setEditingSession: (session: Session | null) => void;
   setPlacingSessionInfo: (info: PlacingSessionInfo | null) => void;
   placingSessionInfo: PlacingSessionInfo | null;
@@ -102,7 +107,12 @@ function Scheduler() {
   }, [reloadData]);
 
   const activeConfig = useMemo(() => {
-    return appData.configurations.find(c => c.id === appData.activeConfigurationId) || appData.configurations[0] || mockData;
+    const config = appData.configurations.find(c => c.id === appData.activeConfigurationId) || appData.configurations[0] || mockData;
+    // Ensure coaches array exists for backward compatibility
+    if (!config.coaches) {
+        config.coaches = [];
+    }
+    return config;
   }, [appData]);
 
 
@@ -121,6 +131,53 @@ function Scheduler() {
       }
   };
 
+  const validateMove = (sessionToMove: Session, newGymId: string, newDay: number, newStartTime: number): boolean => {
+    const sessionEndMinutes = newStartTime + sessionToMove.duration;
+
+    // --- VALIDATION 1: Check Gym Availability ---
+    const gym = activeConfig.gyms.find(g => g.id === newGymId);
+    if (!gym) return false;
+    
+    const dayConfig = gym.availability.find(d => d.key === newDay);
+    if (!dayConfig) {
+         toast({ title: "Errore", description: "Configurazione giorno non trovata.", variant: "destructive" });
+        return false;
+    }
+    
+    const isWithinAvailableSlot = dayConfig.slots.some(slot =>
+        newStartTime >= slot.start && sessionEndMinutes <= slot.end
+    );
+
+    if (!isWithinAvailableSlot) {
+        toast({
+            title: "Orario non valido!",
+            description: "La sessione non rientra in una fascia oraria disponibile per la palestra.",
+            variant: "destructive"
+        });
+        return false;
+    }
+
+    // --- VALIDATION 2: Check for Collisions ---
+    const collision = activeConfig.sessions.some(s => {
+        if (s.id === sessionToMove.id || s.gymId !== newGymId || s.day !== newDay || s.startTime === null) {
+            return false;
+        }
+        const s_start = s.startTime;
+        const s_end = s.startTime + s.duration;
+        return newStartTime < s_end && sessionEndMinutes > s_start;
+    });
+
+    if (collision) {
+        toast({
+            title: "Collisione Rilevata!",
+            description: "Lo slot orario è già occupato da un'altra sessione.",
+            variant: "destructive"
+        });
+        return false;
+    }
+    
+    return true;
+  }
 
   const moveSession = (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null): boolean => {
     const sessionToMove = activeConfig.sessions.find(s => s.id === sessionId);
@@ -136,49 +193,7 @@ function Scheduler() {
         return true;
     }
     
-    const sessionEndMinutes = newStartTime + sessionToMove.duration;
-
-    // --- VALIDATION 1: Check Gym Availability ---
-    const gym = activeConfig.gyms.find(g => g.id === newGymId);
-    if (!gym) return false;
-    
-    const dayConfig = gym.availability.find(d => d.key === newDay);
-    if (!dayConfig) {
-         toast({ title: "Errore", description: "Configurazione giorno non trovata.", variant: "destructive" });
-        return false;
-    }
-    
-    // Check if the session falls entirely within any available slots
-    const isWithinAvailableSlot = dayConfig.slots.some(slot =>
-        newStartTime >= slot.start && sessionEndMinutes <= slot.end
-    );
-
-    if (!isWithinAvailableSlot) {
-        toast({
-            title: "Orario non valido!",
-            description: "La sessione non rientra completamente in una fascia oraria disponibile per la palestra.",
-            variant: "destructive"
-        });
-        return false;
-    }
-
-    // --- VALIDATION 2: Check for Collisions ---
-    const collision = activeConfig.sessions.some(s => {
-        if (s.id === sessionId || s.gymId !== newGymId || s.day !== newDay || s.startTime === null) {
-            return false;
-        }
-        const s_start = s.startTime;
-        const s_end = s.startTime + s.duration;
-        // Check for any overlap: (start1 < end2) and (end1 > start2)
-        return newStartTime < s_end && sessionEndMinutes > s_start;
-    });
-
-    if (collision) {
-        toast({
-            title: "Collisione Rilevata!",
-            description: "Impossibile spostare. Lo slot orario è già occupato.",
-            variant: "destructive"
-        });
+    if (!validateMove(sessionToMove, newGymId, newDay, newStartTime)) {
         return false;
     }
 
@@ -194,6 +209,41 @@ function Scheduler() {
     return true;
   };
 
+  const assignCoachToSession = (coachId: string | null, sessionId: string) => {
+      const newSessions = activeConfig.sessions.map(s => 
+          s.id === sessionId ? { ...s, coachId } : s
+      );
+      updateSessions(newSessions);
+      const coach = activeConfig.coaches.find(c => c.id === coachId);
+      const session = activeConfig.sessions.find(s => s.id === sessionId);
+      const team = activeConfig.teams.find(t => t.id === session?.teamId);
+      if(coach && team) {
+        toast({ title: "Coach Assegnato", description: `${coach.name} è stato assegnato alla sessione di ${team.name}.` });
+      } else {
+        toast({ title: "Coach Rimosso", description: `Il coach è stato rimosso dalla sessione.` });
+      }
+  };
+
+    const updateSessionDetails = (sessionId: string, newStartTime: number, newCoachId: string | null): boolean => {
+        const sessionToUpdate = activeConfig.sessions.find(s => s.id === sessionId);
+        if (!sessionToUpdate || !sessionToUpdate.gymId || !sessionToUpdate.day) return false;
+        
+        // Validate time change only if it has changed
+        if (newStartTime !== sessionToUpdate.startTime) {
+            if (!validateMove(sessionToUpdate, sessionToUpdate.gymId, sessionToUpdate.day, newStartTime)) {
+                return false;
+            }
+        }
+        
+        const newSessions = activeConfig.sessions.map(s => 
+            s.id === sessionId ? { ...s, startTime: newStartTime, coachId: newCoachId } : s
+        );
+        updateSessions(newSessions);
+        toast({ title: "Sessione Aggiornata", description: "Le modifiche sono state salvate." });
+        return true;
+    }
+
+
   const getSessionsByGymAndDay = (gymId: string, day: number) => {
     return activeConfig.sessions.filter(session => session.gymId === gymId && session.day === day);
   };
@@ -201,12 +251,20 @@ function Scheduler() {
   const getUnassignedSessions = () => {
       return activeConfig.sessions.filter(s => s.gymId === null);
   }
+
+  const getUnassignedCoaches = () => {
+      const assignedCoachIds = new Set(activeConfig.sessions.filter(s => s.coachId).map(s => s.coachId));
+      return activeConfig.coaches.filter(c => !assignedCoachIds.has(c.id));
+  }
   
   return (
-    <SchedulerContext.Provider value={{ ...activeConfig, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, placingSessionInfo, setPlacingSessionInfo }}>
+    <SchedulerContext.Provider value={{ ...activeConfig, moveSession, assignCoachToSession, updateSessionDetails, getSessionsByGymAndDay, getUnassignedSessions, getUnassignedCoaches, setEditingSession, placingSessionInfo, setPlacingSessionInfo }}>
         <Header onRefresh={reloadData} configName={activeConfig.name} />
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
-            <UnassignedSessionsColumn />
+            <div className="flex flex-col gap-4">
+                <UnassignedSessionsColumn />
+                <UnassignedCoachesColumn />
+            </div>
              <div className="flex-grow flex flex-col h-full overflow-hidden">
                  <Tabs defaultValue="gym-view" className="flex-grow flex flex-col h-full overflow-hidden">
                     <div className="flex-shrink-0 flex items-center justify-between pb-4">
@@ -386,9 +444,10 @@ interface SessionCardProps {
   session: Session;
   isDraggable?: boolean;
 }
-const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
-    const { teams, teamColors, setEditingSession } = useScheduler();
+const SessionCard = React.forwardRef<HTMLDivElement, SessionCardProps>(({ session, isDraggable = true }, ref) => {
+    const { teams, teamColors, setEditingSession, coaches } = useScheduler();
     const team = teams.find(t => t.id === session.teamId);
+    const coach = coaches.find(c => c.id === session.coachId);
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
         if (!isDraggable) {
@@ -419,6 +478,7 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
 
     return (
         <div
+            ref={ref}
             draggable={isDraggable}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
@@ -428,19 +488,25 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             aria-label={`Session for ${team?.name}`}
         >
             {isDraggable && <GripVertical className="h-5 w-5 text-muted-foreground shrink-0 mt-1" />}
-            <div className="flex flex-col w-full">
-                <p className="font-bold text-sm text-card-foreground">{team?.name}</p>
+            <div className="flex flex-col w-full overflow-hidden">
+                <p className="font-bold text-sm text-card-foreground truncate">{team?.name}</p>
                 {isPlaced && (
                      <p className="text-xs font-semibold text-primary flex items-center gap-1">
                         <Clock className="h-3 w-3"/>
                         {startTimeStr} - {endTimeStr}
                     </p>
                 )}
-                <p className="text-xs text-muted-foreground">{session.duration} min</p>
+                 <p className="text-xs text-muted-foreground">{session.duration} min</p>
+                {coach && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1 truncate">
+                        <User className="h-3 w-3"/> {coach.name}
+                    </p>
+                )}
             </div>
         </div>
     );
-};
+});
+SessionCard.displayName = "SessionCard";
 
 
 // --- UNASSIGNED SESSIONS COLUMN ---
@@ -469,7 +535,7 @@ const UnassignedSessionsColumn = () => {
 
   return (
     <Card 
-        className={`w-72 h-full flex flex-col transition-colors shrink-0 ${isOver ? 'bg-accent/10' : ''}`}
+        className={`w-72 flex flex-col transition-colors shrink-0 ${isOver ? 'bg-accent/10' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -486,7 +552,7 @@ const UnassignedSessionsColumn = () => {
       <ScrollArea>
         <CardContent className="p-4 space-y-3">
           {unassignedSessions.length > 0 ? (
-              unassignedSessions.map(session => <div key={session.id} className="h-16"><SessionCard session={session} /></div>)
+              unassignedSessions.map(session => <div key={session.id} className="h-20"><SessionCard session={session} /></div>)
           ) : (
               <div className="text-center text-muted-foreground pt-10">Tutte le sessioni sono state pianificate!</div>
           )}
@@ -495,6 +561,70 @@ const UnassignedSessionsColumn = () => {
     </Card>
   );
 };
+
+// --- UNASSIGNED COACHES COLUMN ---
+const UnassignedCoachesColumn = () => {
+    const { coaches, sessions } = useScheduler();
+
+    const assignedCoachIds = useMemo(() => 
+        new Set(sessions.filter(s => s.coachId !== null).map(s => s.coachId))
+    , [sessions]);
+
+    const unassignedCoaches = useMemo(() => 
+        coaches.filter(c => !assignedCoachIds.has(c.id))
+    , [coaches, assignedCoachIds]);
+    
+    if (coaches.length === 0) return null;
+
+    return (
+        <Card className="w-72 flex flex-col shrink-0">
+            <CardHeader className="border-b">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                    <UserCheck className="h-5 w-5 text-primary" />
+                    Coach da Assegnare
+                     <span className="ml-auto font-bold text-white bg-primary rounded-full h-6 w-6 flex items-center justify-center text-xs">
+                        {unassignedCoaches.length}
+                    </span>
+                </CardTitle>
+            </CardHeader>
+            <ScrollArea>
+                <CardContent className="p-4 space-y-3">
+                    {unassignedCoaches.length > 0 ? (
+                        unassignedCoaches.map(coach => <CoachCard key={coach.id} coach={coach} />)
+                    ) : (
+                        <div className="text-center text-muted-foreground pt-10">Tutti i coach sono impegnati!</div>
+                    )}
+                </CardContent>
+            </ScrollArea>
+        </Card>
+    );
+};
+
+const CoachCard = ({ coach }: { coach: Coach }) => {
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+        e.dataTransfer.setData('coachId', coach.id);
+        e.currentTarget.style.opacity = '0.5';
+    };
+
+    const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+        e.currentTarget.style.opacity = '1';
+    };
+
+    return (
+        <div
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            className="h-12 rounded-lg shadow-md flex items-center gap-2 bg-card p-2 cursor-grab active:cursor-grabbing border"
+        >
+            <GripVertical className="h-5 w-5 text-muted-foreground shrink-0" />
+            <div className="flex flex-col">
+                <p className="font-semibold text-sm text-card-foreground">{coach.name}</p>
+            </div>
+        </div>
+    );
+};
+
 
 // --- GYM SCHEDULE GRID (WEEK VIEW) ---
 
@@ -666,11 +796,9 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                     if (top < 0 || top >= 100) return null;
 
                     return (
-                        <div key={session.id} className="absolute w-full" style={{ top: `${top}%`, height: `${height}%` }}>
-                            <div className="h-full w-full">
-                                <SessionCard session={session} isDraggable={true} />
-                            </div>
-                        </div>
+                        <SessionWrapper key={session.id} session={session} style={{ top: `${top}%`, height: `${height}%` }}>
+                           <SessionCard session={session} isDraggable={true} />
+                        </SessionWrapper>
                     );
                 })}
             </div>
@@ -678,20 +806,61 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     );
 };
 
+const SessionWrapper = ({ session, style, children }: { session: Session; style: React.CSSProperties; children: React.ReactNode }) => {
+    const { assignCoachToSession } = useScheduler();
+    const [isOver, setIsOver] = useState(false);
+    
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent drop on the parent cell
+        const coachId = e.dataTransfer.getData('coachId');
+        if (coachId) {
+            assignCoachToSession(coachId, session.id);
+        }
+        setIsOver(false);
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsOver(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        setIsOver(false);
+    };
+
+    return (
+        <div
+            className={`absolute w-full transition-all duration-200 ${isOver ? 'ring-2 ring-offset-2 ring-accent' : ''}`}
+            style={style}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+        >
+            <div className="h-full w-full">{children}</div>
+        </div>
+    );
+};
+
+
 // --- DIALOGS ---
 
 interface EditSessionDialogProps {
     session: Session;
 }
 function EditSessionDialog({ session }: EditSessionDialogProps) {
-    const { teams, setEditingSession, moveSession } = useScheduler();
+    const { teams, coaches, setEditingSession, updateSessionDetails } = useScheduler();
     const [newTime, setNewTime] = useState(formatTime(session.startTime));
+    const [selectedCoachId, setSelectedCoachId] = useState<string | null>(session.coachId);
+    
     const team = teams.find(t => t.id === session.teamId);
 
     const handleSave = () => {
         const newStartTime = timeToMinutes(newTime);
         if (newStartTime !== null && session.gymId && session.day) {
-           const success = moveSession(session.id, session.gymId, session.day, newStartTime);
+           const success = updateSessionDetails(session.id, newStartTime, selectedCoachId);
            if (success) {
                setEditingSession(null);
            }
@@ -704,7 +873,7 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
          <Dialog open={true} onOpenChange={() => setEditingSession(null)}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Modifica Orario Sessione</DialogTitle>
+                    <DialogTitle>Modifica Dettagli Sessione</DialogTitle>
                     <DialogDescription>
                         Stai modificando la sessione per <strong>{team.name}</strong>.
                     </DialogDescription>
@@ -720,6 +889,20 @@ function EditSessionDialog({ session }: EditSessionDialogProps) {
                             onChange={(e) => setNewTime(e.target.value)}
                             className="col-span-3"
                         />
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="coach-select" className="text-right">Coach</Label>
+                        <Select onValueChange={(value) => setSelectedCoachId(value === 'none' ? null : value)} defaultValue={selectedCoachId || 'none'}>
+                            <SelectTrigger id="coach-select" className="col-span-3">
+                                <SelectValue placeholder="Seleziona un coach" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Nessun coach</SelectItem>
+                                {coaches.map(coach => (
+                                    <SelectItem key={coach.id} value={coach.id}>{coach.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
                 <DialogFooter>

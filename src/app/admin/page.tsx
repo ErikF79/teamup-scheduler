@@ -7,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard, Plus, Trash, Save, FilePlus, Edit, TrashIcon } from "lucide-react";
+import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard, Plus, Trash, Save, FilePlus, Edit, TrashIcon, UserCheck } from "lucide-react";
 import Link from "next/link";
-import { initialData as mockData, Session, Gym, Team, DayAvailability, TimeSlot, Config, AppData } from '@/lib/teamup';
+import { initialData as mockData, Session, Gym, Team, DayAvailability, TimeSlot, Config, AppData, Coach } from '@/lib/teamup';
 import {
   Tooltip,
   TooltipContent,
@@ -69,6 +69,8 @@ export default function AdminPage() {
 
     const [editingGymId, setEditingGymId] = useState<string | null>(null);
     const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+    const [editingCoachId, setEditingCoachId] = useState<string | null>(null);
+
 
     const activeConfig = useMemo(() => {
         return appData.configurations.find(c => c.id === appData.activeConfigurationId) || appData.configurations[0];
@@ -78,7 +80,12 @@ export default function AdminPage() {
     const updateData = (newConfigData: Partial<Omit<Config, 'id' | 'name'>>) => {
         const newConfigurations = appData.configurations.map(c => {
             if (c.id === appData.activeConfigurationId) {
-                return { ...c, ...newConfigData };
+                const currentConfig = { ...c, ...newConfigData };
+                // Ensure coaches array exists
+                if (!currentConfig.coaches) {
+                    currentConfig.coaches = [];
+                }
+                return currentConfig;
             }
             return c;
         });
@@ -143,6 +150,7 @@ export default function AdminPage() {
             id: `session-${newTeamId}-1`,
             teamId: newTeamId,
             duration: 90, // default duration
+            coachId: null,
             gymId: null,
             day: null,
             startTime: null,
@@ -180,6 +188,26 @@ export default function AdminPage() {
         });
     };
 
+    // --- Coach Handlers ---
+    const handleAddCoach = () => {
+        const newCoach: Coach = { id: `coach-${Date.now()}`, name: "Nuovo Coach" };
+        updateData({ coaches: [...(activeConfig.coaches || []), newCoach] });
+    };
+
+    const handleUpdateCoach = (updatedCoach: Coach) => {
+        updateData({ coaches: (activeConfig.coaches || []).map(c => c.id === updatedCoach.id ? updatedCoach : c) });
+        setEditingCoachId(null);
+    };
+
+    const handleDeleteCoach = (coachId: string) => {
+        // Unassign coach from any sessions
+        const newSessions = activeConfig.sessions.map(s => s.coachId === coachId ? { ...s, coachId: null } : s);
+        updateData({
+            coaches: (activeConfig.coaches || []).filter(c => c.id !== coachId),
+            sessions: newSessions,
+        });
+    };
+
 
     // --- Import/Export Handlers ---
     const handleExport = () => {
@@ -211,7 +239,8 @@ export default function AdminPage() {
                         const newConfig: Config = {
                             ...parsedData,
                             id: `config-imported-${Date.now()}`,
-                            name: "Configurazione Importata"
+                            name: "Configurazione Importata",
+                            coaches: parsedData.coaches || [], // Ensure coaches is present
                         };
                         const newAppData = {
                             configurations: [...appData.configurations, newConfig],
@@ -351,7 +380,7 @@ export default function AdminPage() {
                         </CardContent>
                     </Card>
 
-                    <div className="grid md:grid-cols-2 gap-8 items-start">
+                    <div className="grid md:grid-cols-3 gap-8 items-start">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Building2 className="text-primary" /> Gestione Palestre</CardTitle>
@@ -443,6 +472,50 @@ export default function AdminPage() {
                                 </Button>
                             </CardContent>
                         </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><UserCheck className="text-primary" /> Gestione Coach</CardTitle>
+                                <CardDescription>Aggiungi o rimuovi gli allenatori per la configurazione <span className="font-bold">"{activeConfig.name}"</span>.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-3">
+                                    {(activeConfig.coaches || []).map(coach =>
+                                        editingCoachId === coach.id ? (
+                                            <CoachEditForm key={coach.id} coach={coach} onSave={handleUpdateCoach} onCancel={() => setEditingCoachId(null)} />
+                                        ) : (
+                                            <div key={coach.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
+                                                <span className="font-medium">{coach.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => setEditingCoachId(coach.id)}><Pencil className="h-4 w-4" /></Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                          <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                            <AlertDialogTitle>Sei sicuro di voler eliminare {coach.name}?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Questa azione è irreversibile. Il coach verrà rimosso da tutte le sessioni a cui è assegnato.
+                                                            </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                            <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteCoach(coach.id)} className="bg-destructive hover:bg-destructive/90">Elimina</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
+                                <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddCoach}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Coach
+                                </Button>
+                            </CardContent>
+                        </Card>
+
                     </div>
                 </main>
             </div>
@@ -602,6 +675,7 @@ function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
             id: `session-${team.id}-${Date.now()}`,
             teamId: team.id,
             duration: 90,
+            coachId: null,
             gymId: null,
             day: null,
             startTime: null
@@ -696,4 +770,27 @@ function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
     );
 }
 
-    
+// --- Coach Edit Form ---
+interface CoachEditFormProps {
+    coach: Coach;
+    onSave: (coach: Coach) => void;
+    onCancel: () => void;
+}
+function CoachEditForm({ coach, onSave, onCancel }: CoachEditFormProps) {
+    const [name, setName] = useState(coach.name);
+
+    return (
+         <div className="p-4 border rounded-lg space-y-4 bg-secondary/30">
+            <div className="space-y-2">
+                <Label htmlFor={`coach-name-${coach.id}`}>Nome Coach</Label>
+                <Input id={`coach-name-${coach.id}`} value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+                 <Button variant="ghost" size="icon" onClick={onCancel}><X className="h-5 w-5"/></Button>
+                 <Button variant="outline" size="icon" onClick={() => onSave({...coach, name})} className="text-green-600 border-green-600 hover:bg-green-100 hover:text-green-700">
+                    <Check className="h-5 w-5"/>
+                 </Button>
+            </div>
+        </div>
+    )
+}

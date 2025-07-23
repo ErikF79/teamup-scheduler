@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -107,7 +108,7 @@ export default function PrintPage() {
                         <CardDescription>Scegli cosa vuoi visualizzare. Il contenuto verrà generato qui sotto in un formato A4, pronto per la stampa o il salvataggio in PDF.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex flex-col gap-4">
+                        <div className="grid gap-4">
                             <div className="flex items-end gap-4">
                                 <div>
                                     <label className="text-sm font-medium mb-1 block">Tipo di Vista</label>
@@ -336,3 +337,6 @@ const DayPrintView = ({ dayKey, data }: { dayKey: number, data: Config }) => {
         </div>
     );
 };
+
+
+    

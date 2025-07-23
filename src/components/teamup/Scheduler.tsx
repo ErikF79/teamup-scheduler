@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Header } from "@/components/teamup/Header";
 
 
 // --- CONSTANTS ---
@@ -47,7 +48,6 @@ interface SchedulerContextType {
   getUnassignedSessions: () => Session[];
   setEditingSession: (session: Session | null) => void;
   setPlacingSessionInfo: (info: PlacingSessionInfo | null) => void;
-  placingSessionInfo: PlacingSessionInfo | null;
 }
 
 const SchedulerContext = createContext<SchedulerContextType | null>(null);
@@ -61,13 +61,21 @@ const useScheduler = () => {
 };
 
 // --- PROVIDER ---
-export default function Scheduler() {
+export default function SchedulerContainer() {
+  return (
+     <div className="flex flex-col h-screen bg-background">
+      <Scheduler />
+    </div>
+  )
+}
+
+function Scheduler() {
   const { toast } = useToast();
   const [appData, setAppData] = useState(mockData);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [placingSessionInfo, setPlacingSessionInfo] = useState<PlacingSessionInfo | null>(null);
   
-  useEffect(() => {
+  const reloadData = useCallback(() => {
     if (typeof window !== 'undefined') {
         const savedData = localStorage.getItem('teamup_data');
         try {
@@ -75,13 +83,21 @@ export default function Scheduler() {
                 const parsedData = JSON.parse(savedData);
                 if (parsedData.gyms && parsedData.teams && parsedData.sessions) {
                     setAppData(parsedData);
+                     toast({ title: "Dati Aggiornati", description: "I dati da admin sono stati ricaricati." });
                 }
+            } else {
+                 setAppData(mockData);
             }
         } catch (e) {
             console.error("Failed to load data from localStorage", e);
+             toast({ title: "Errore", description: "Impossibile caricare i dati.", variant: "destructive" });
         }
     }
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    reloadData();
+  }, [reloadData]);
 
   const updateSessions = (newSessions: Session[]) => {
       const newAppData = { ...appData, sessions: newSessions };
@@ -173,7 +189,8 @@ export default function Scheduler() {
   }
   
   return (
-    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, setPlacingSessionInfo, placingSessionInfo }}>
+    <SchedulerContext.Provider value={{ ...appData, moveSession, getSessionsByGymAndDay, getUnassignedSessions, setEditingSession, setPlacingSessionInfo }}>
+        <Header onRefresh={reloadData} />
         <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
             <UnassignedSessionsColumn />
              <div className="flex-grow flex flex-col h-full overflow-hidden">
@@ -203,7 +220,7 @@ export default function Scheduler() {
 // --- VIEWS ---
 
 function GymViewScheduler() {
-    const { gyms, getSessionsByGymAndDay } = useScheduler();
+    const { gyms, sessions } = useScheduler();
     return (
         <ScrollArea className="flex-grow h-full pr-4">
             <div className="space-y-6">
@@ -212,7 +229,7 @@ function GymViewScheduler() {
                 <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                     <Building2 className="text-primary"/> {gym.name}
                 </h2>
-                <GymScheduleGrid gym={gym} sessions={getSessionsByGymAndDay(gym.id, 1)} />
+                <GymScheduleGrid gym={gym} allSessions={sessions} />
                 </div>
             ))}
             </div>
@@ -221,7 +238,7 @@ function GymViewScheduler() {
 }
 
 function DayViewScheduler() {
-    const { gyms, getSessionsByGymAndDay } = useScheduler();
+    const { gyms, sessions } = useScheduler();
 
     const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) * 4 }, (_, i) => {
         const totalMinutes = MASTER_START_HOUR * 60 + i * 15;
@@ -232,7 +249,7 @@ function DayViewScheduler() {
         }
         return { time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`, isHour: false };
     }), []);
-
+    
     return (
          <Tabs defaultValue="1" className="flex-grow flex flex-col h-full overflow-hidden">
              <div className="flex-shrink-0 pb-4">
@@ -249,56 +266,13 @@ function DayViewScheduler() {
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
                     </div>
                     {/* Gym Headers */}
-                    {gyms.map(gym => {
-                        return (
-                             <TabsContent key={gym.id} value="1" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={1} sessions={getSessionsByGymAndDay(gym.id, 1)} />
-                            </TabsContent>
-                        )
-                    })}
-                     {gyms.map(gym => {
-                        return (
-                             <TabsContent key={gym.id} value="2" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={2} sessions={getSessionsByGymAndDay(gym.id, 2)} />
-                            </TabsContent>
-                        )
-                    })}
-                     {gyms.map(gym => {
-                        return (
-                             <TabsContent key={gym.id} value="3" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={3} sessions={getSessionsByGymAndDay(gym.id, 3)} />
-                            </TabsContent>
-                        )
-                    })}
-                     {gyms.map(gym => {
-                        return (
-                             <TabsContent key={gym.id} value="4" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={4} sessions={getSessionsByGymAndDay(gym.id, 4)} />
-                            </TabsContent>
-                        )
-                    })}
-                     {gyms.map(gym => {
-                        return (
-                             <TabsContent key={gym.id} value="5" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={5} sessions={getSessionsByGymAndDay(gym.id, 5)} />
-                            </TabsContent>
-                        )
-                    })}
-                     {gyms.map(gym => {
-                        return (
-                             <TabsContent key={gym.id} value="6" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={6} sessions={getSessionsByGymAndDay(gym.id, 6)} />
-                            </TabsContent>
-                        )
-                    })}
-                     {gyms.map(gym => {
-                        return (
-                             <TabsContent key={gym.id} value="7" className="contents">
-                                <DayHeaderCell gym={gym} dayKey={7} sessions={getSessionsByGymAndDay(gym.id, 7)} />
-                            </TabsContent>
-                        )
-                    })}
-
+                    {DAYS_OF_WEEK.map(day => (
+                        <TabsContent key={day.key} value={String(day.key)} className="contents">
+                            {gyms.map(gym => (
+                                <DayHeaderCell key={`${gym.id}-${day.key}`} gym={gym} dayKey={day.key} sessions={sessions.filter(s => s.gymId === gym.id && s.day === day.key)} />
+                            ))}
+                        </TabsContent>
+                    ))}
 
                     {/* Time Slots Column */}
                     <div className="row-start-2 col-start-1 bg-card border-r sticky left-0 z-10">
@@ -392,7 +366,7 @@ const SessionCard = ({ session, isDraggable = true }: SessionCardProps) => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             onClick={handleClick}
-            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card px-2 ${isDraggable ? cursorClass : ''}`}
+            className={`h-full rounded-lg shadow-md flex items-start gap-2 border-l-4 bg-card px-2 mx-1 ${isDraggable ? cursorClass : ''}`}
             style={{ borderLeftColor: teamColors[session.teamId] || 'hsl(var(--muted))' }}
             aria-label={`Session for ${team?.name}`}
         >
@@ -466,7 +440,7 @@ const UnassignedSessionsColumn = () => {
 };
 
 // --- GYM SCHEDULE GRID (WEEK VIEW) ---
-const GymScheduleGrid = ({ gym, sessions }: { gym: Gym, sessions: Session[] }) => {
+const GymScheduleGrid = ({ gym, allSessions }: { gym: Gym, allSessions: Session[] }) => {
     
     const timeSlots = useMemo(() => Array.from({ length: (MASTER_END_HOUR - MASTER_START_HOUR) * 4 }, (_, i) => {
         const totalMinutes = MASTER_START_HOUR * 60 + i * 15;
@@ -489,7 +463,7 @@ const GymScheduleGrid = ({ gym, sessions }: { gym: Gym, sessions: Session[] }) =
                     </div>
                     {/* Day Headers */}
                     {DAYS_OF_WEEK.map(day => {
-                        const daySessions = sessions.filter(s => s.day === day.key);
+                        const daySessions = allSessions.filter(s => s.day === day.key && s.gymId === gym.id);
                         return <DayHeaderCell key={day.key} gym={gym} dayKey={day.key} sessions={daySessions} />
                     })}
                     
@@ -743,3 +717,4 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
     
 
     
+

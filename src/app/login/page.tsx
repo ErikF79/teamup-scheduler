@@ -24,10 +24,22 @@ export default function LoginPage() {
     const getAppData = (): AppData => {
         if (typeof window !== 'undefined') {
             const data = localStorage.getItem('teamup_data');
-            return data ? JSON.parse(data) : { users: {}, userData: {} };
+            if (data) {
+                try {
+                    const parsedData = JSON.parse(data);
+                    // Ensure the structure is valid
+                    if (parsedData && typeof parsedData.users === 'object' && typeof parsedData.userData === 'object') {
+                        return parsedData;
+                    }
+                } catch (e) {
+                    console.error("Failed to parse AppData from localStorage", e);
+                }
+            }
         }
+        // Return a default, valid AppData structure if nothing exists or data is invalid
         return { users: {}, userData: {} };
     };
+
 
     const saveAppData = (data: AppData) => {
         if (typeof window !== 'undefined') {
@@ -38,7 +50,8 @@ export default function LoginPage() {
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         const appData = getAppData();
-        if (appData.users[loginUsername] && appData.users[loginUsername] === loginPassword) {
+        // Defensive check to ensure appData.users exists
+        if (appData.users && appData.users[loginUsername] && appData.users[loginUsername] === loginPassword) {
             if (typeof window !== 'undefined') {
                 localStorage.setItem('teamup_active_user', loginUsername);
             }
@@ -57,9 +70,13 @@ export default function LoginPage() {
         }
 
         const appData = getAppData();
-        if (appData.users[registerUsername]) {
+        if (appData.users && appData.users[registerUsername]) {
             toast({ title: "Errore di Registrazione", description: "Questo nome utente è già stato registrato.", variant: "destructive" });
         } else {
+            // Ensure appData objects exist before assignment
+            if (!appData.users) appData.users = {};
+            if (!appData.userData) appData.userData = {};
+
             appData.users[registerUsername] = registerPassword;
             appData.userData[registerUsername] = {
                 configurations: [initialData],

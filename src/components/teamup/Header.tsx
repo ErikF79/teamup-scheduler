@@ -3,9 +3,19 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Settings, LayoutDashboard, RefreshCw, Printer } from "lucide-react";
+import { Settings, LayoutDashboard, RefreshCw, Printer, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function Header({ onRefresh, configName }: { onRefresh: () => void, configName: string }) {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('teamup_active_user');
+    }
+    router.push('/login');
+  };
+
   return (
     <header className="flex items-center justify-between p-4 border-b bg-card">
       <h1 className="text-xl font-bold text-primary">
@@ -34,6 +44,10 @@ export function Header({ onRefresh, configName }: { onRefresh: () => void, confi
             Admin Panel
             </Button>
         </Link>
+        <Button variant="destructive" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+        </Button>
       </div>
     </header>
   );

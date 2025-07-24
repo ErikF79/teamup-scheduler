@@ -6,10 +6,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach } from '@/lib/teamup';
+import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach, UserData } from '@/lib/teamup';
 import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard, Hourglass, Percent, UserCheck } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Progress } from '@/components/ui/progress';
+import { useRouter } from 'next/navigation';
 
 
 function getWeeksBetween(d1: Date, d2: Date) {
@@ -18,16 +19,24 @@ function getWeeksBetween(d1: Date, d2: Date) {
 }
 
 export default function DashboardPage() {
-    const [data, setData] = useState<Config>({ ...mockData });
+    const [data, setData] = useState<Config | null>(null);
+    const router = useRouter();
 
     const fetchData = useCallback(() => {
         if (typeof window !== 'undefined') {
+            const loggedInUser = localStorage.getItem('teamup_active_user');
+            if (!loggedInUser) {
+                router.replace('/login');
+                return;
+            }
+
             const savedData = localStorage.getItem('teamup_data');
             try {
                 if (savedData) {
                     const parsedAppData: AppData = JSON.parse(savedData);
-                    if (parsedAppData.configurations && parsedAppData.activeConfigurationId) {
-                        const activeConfig = parsedAppData.configurations.find(c => c.id === parsedAppData.activeConfigurationId);
+                    const userData = parsedAppData.userData[loggedInUser];
+                    if (userData && userData.configurations) {
+                        const activeConfig = userData.configurations.find(c => c.id === userData.activeConfigurationId);
                         if (activeConfig) {
                              setData(activeConfig);
                              return;
@@ -39,7 +48,7 @@ export default function DashboardPage() {
             }
         }
         setData(mockData); // Fallback to mockData if nothing in localStorage
-    }, []);
+    }, [router]);
 
 
     useEffect(() => {
@@ -47,6 +56,8 @@ export default function DashboardPage() {
     }, [fetchData]);
 
     const stats = useMemo(() => {
+        if (!data) return null;
+
         const numGyms = data.gyms.length;
         const numTeams = data.teams.length;
         const numSessions = data.sessions.length;
@@ -133,6 +144,10 @@ export default function DashboardPage() {
         };
     }, [data]);
 
+    if (!data || !stats) {
+        return <div className="flex items-center justify-center min-h-screen">Loading or redirecting...</div>;
+    }
+
     return (
         <div className="min-h-screen bg-background text-foreground">
              <header className="flex items-center justify-between p-4 border-b bg-card">
@@ -140,7 +155,7 @@ export default function DashboardPage() {
                     <LayoutDashboard/> Dashboard Statistiche per "{data.name}"
                 </h1>
                 <div className="flex items-center gap-2">
-                    <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
+                    <Link href="/scheduler"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
                 </div>
             </header>
 

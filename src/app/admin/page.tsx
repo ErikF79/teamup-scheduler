@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard, Plus, Trash, Save, FilePlus, Edit, TrashIcon, UserCheck } from "lucide-react";
 import Link from "next/link";
-import { initialData as mockData, Session, Gym, Team, DayAvailability, TimeSlot, Config, AppData, Coach } from '@/lib/teamup';
+import { initialData as mockData, Session, Gym, Team, DayAvailability, TimeSlot, Config, AppData, UserData, Coach } from '@/lib/teamup';
 import {
   Tooltip,
   TooltipContent,
@@ -35,32 +35,42 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 
 // --- Main Admin Page Component ---
 export default function AdminPage() {
-    const [appData, setAppData] = useState<AppData>({ configurations: [mockData], activeConfigurationId: mockData.id });
+    const [userData, setUserData] = useState<UserData | null>(null);
+    const [activeUser, setActiveUser] = useState<string | null>(null);
     const { toast } = useToast();
+    const router = useRouter();
 
     // --- Data Fetching ---
     const fetchData = useCallback(() => {
         if (typeof window !== 'undefined') {
+            const loggedInUser = localStorage.getItem('teamup_active_user');
+            if (!loggedInUser) {
+                router.replace('/login');
+                return;
+            }
+            setActiveUser(loggedInUser);
+
             const savedData = localStorage.getItem('teamup_data');
             try {
                 if (savedData) {
-                    const parsedData = JSON.parse(savedData);
-                    if (parsedData.configurations && parsedData.configurations.length > 0 && parsedData.activeConfigurationId) {
-                        setAppData(parsedData);
+                    const parsedData: AppData = JSON.parse(savedData);
+                    if (parsedData.userData && parsedData.userData[loggedInUser]) {
+                        setUserData(parsedData.userData[loggedInUser]);
                         return;
                     }
                 }
             } catch (e) {
                 console.error("Failed to parse data from localStorage", e);
             }
+            // Fallback to initial structure if nothing valid is found
+            setUserData({ configurations: [mockData], activeConfigurationId: mockData.id });
         }
-        // Fallback to initial structure if nothing valid is found
-        setAppData({ configurations: [mockData], activeConfigurationId: mockData.id });
-    }, []);
+    }, [router]);
 
     useEffect(() => {
         fetchData();
@@ -73,13 +83,25 @@ export default function AdminPage() {
 
 
     const activeConfig = useMemo(() => {
-        return appData.configurations.find(c => c.id === appData.activeConfigurationId) || appData.configurations[0];
-    }, [appData]);
+        if (!userData) return null;
+        return userData.configurations.find(c => c.id === userData.activeConfigurationId) || userData.configurations[0];
+    }, [userData]);
 
 
-    const updateData = (newConfigData: Partial<Omit<Config, 'id' | 'name'>>) => {
-        const newConfigurations = appData.configurations.map(c => {
-            if (c.id === appData.activeConfigurationId) {
+    const updateUserData = (newUserData: UserData) => {
+        setUserData(newUserData);
+        if (typeof window !== 'undefined' && activeUser) {
+             const savedData = localStorage.getItem('teamup_data');
+             const appData: AppData = savedData ? JSON.parse(savedData) : { users: {}, userData: {} };
+             appData.userData[activeUser] = newUserData;
+             localStorage.setItem('teamup_data', JSON.stringify(appData));
+        }
+    };
+
+    const updateActiveConfig = (newConfigData: Partial<Omit<Config, 'id' | 'name'>>) => {
+        if (!userData) return;
+        const newConfigurations = userData.configurations.map(c => {
+            if (c.id === userData.activeConfigurationId) {
                 const currentConfig = { ...c, ...newConfigData };
                 // Ensure coaches array exists
                 if (!currentConfig.coaches) {
@@ -92,23 +114,14 @@ export default function AdminPage() {
             }
             return c;
         });
-        const newAppData = { ...appData, configurations: newConfigurations };
-        setAppData(newAppData);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('teamup_data', JSON.stringify(newAppData));
-        }
-    };
-    
-     const updateAppData = (newAppData: AppData) => {
-        setAppData(newAppData);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('teamup_data', JSON.stringify(newAppData));
-        }
+        const newUserData = { ...userData, configurations: newConfigurations };
+        updateUserData(newUserData);
     };
 
 
     // --- Gym Handlers ---
     const handleAddGym = () => {
+        if (!activeConfig) return;
         const newGym: Gym = {
             id: `gym-${Date.now()}`,
             name: "Nuova Palestra",
@@ -122,18 +135,20 @@ export default function AdminPage() {
                 { key: 7, name: 'Domenica', slots: [{ start: 9 * 60, end: 20 * 60 }] },
             ]
         };
-        updateData({ gyms: [...activeConfig.gyms, newGym] });
+        updateActiveConfig({ gyms: [...activeConfig.gyms, newGym] });
     };
 
     const handleUpdateGym = (updatedGym: Gym) => {
-        updateData({ gyms: activeConfig.gyms.map(g => g.id === updatedGym.id ? updatedGym : g) });
+        if (!activeConfig) return;
+        updateActiveConfig({ gyms: activeConfig.gyms.map(g => g.id === updatedGym.id ? updatedGym : g) });
         setEditingGymId(null);
     };
 
     const handleDeleteGym = (gymId: string) => {
+        if (!activeConfig) return;
         // Also remove sessions assigned to this gym
         const newSessions = activeConfig.sessions.map(s => s.gymId === gymId ? { ...s, gymId: null, day: null, startTime: null } : s);
-        updateData({
+        updateActiveConfig({
             gyms: activeConfig.gyms.filter(g => g.id !== gymId),
             sessions: newSessions
         });
@@ -141,6 +156,7 @@ export default function AdminPage() {
 
     // --- Team Handlers ---
     const handleAddTeam = () => {
+        if (!activeConfig) return;
         const newTeamId = `team-${Date.now()}`;
         const newTeam: Team = {
             id: newTeamId,
@@ -160,7 +176,7 @@ export default function AdminPage() {
         };
         const newTeamColors = { ...activeConfig.teamColors, [newTeamId]: `hsl(${Math.random() * 360}, 70%, 50%)` };
 
-        updateData({
+        updateActiveConfig({
             teams: [...activeConfig.teams, newTeam],
             sessions: [...activeConfig.sessions, newSession],
             teamColors: newTeamColors,
@@ -168,10 +184,11 @@ export default function AdminPage() {
     };
 
     const handleUpdateTeam = (updatedTeam: Team, teamSessions: Session[]) => {
+        if (!activeConfig) return;
         // Get all sessions that do NOT belong to the team being updated
         const otherTeamsSessions = activeConfig.sessions.filter(s => s.teamId !== updatedTeam.id);
         
-        updateData({
+        updateActiveConfig({
             teams: activeConfig.teams.map(t => (t.id === updatedTeam.id ? updatedTeam : t)),
             sessions: [...otherTeamsSessions, ...teamSessions],
         });
@@ -179,12 +196,13 @@ export default function AdminPage() {
     };
 
     const handleDeleteTeam = (teamId: string) => {
+        if (!activeConfig) return;
         const newTeams = activeConfig.teams.filter(t => t.id !== teamId);
         const newSessions = activeConfig.sessions.filter(s => s.teamId !== teamId);
         const newTeamColors = { ...activeConfig.teamColors };
         delete newTeamColors[teamId];
 
-        updateData({
+        updateActiveConfig({
             teams: newTeams,
             sessions: newSessions,
             teamColors: newTeamColors
@@ -193,22 +211,25 @@ export default function AdminPage() {
 
     // --- Coach Handlers ---
     const handleAddCoach = () => {
+        if (!activeConfig) return;
         const newCoach: Coach = { id: `coach-${Date.now()}`, name: "Nuovo Coach" };
-        updateData({ coaches: [...(activeConfig.coaches || []), newCoach] });
+        updateActiveConfig({ coaches: [...(activeConfig.coaches || []), newCoach] });
     };
 
     const handleUpdateCoach = (updatedCoach: Coach) => {
-        updateData({ coaches: (activeConfig.coaches || []).map(c => c.id === updatedCoach.id ? updatedCoach : c) });
+        if (!activeConfig) return;
+        updateActiveConfig({ coaches: (activeConfig.coaches || []).map(c => c.id === updatedCoach.id ? updatedCoach : c) });
         setEditingCoachId(null);
     };
 
     const handleDeleteCoach = (coachId: string) => {
+        if (!activeConfig) return;
         // Unassign coach from any sessions
         const newSessions = activeConfig.sessions.map(s => {
             const newCoachIds = s.coachIds.filter(id => id !== coachId);
             return { ...s, coachIds: newCoachIds };
         });
-        updateData({
+        updateActiveConfig({
             coaches: (activeConfig.coaches || []).filter(c => c.id !== coachId),
             sessions: newSessions,
         });
@@ -217,10 +238,11 @@ export default function AdminPage() {
 
     // --- Import/Export Handlers ---
     const handleExport = () => {
-        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(appData, null, 2))}`;
+        if (!userData) return;
+        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(userData, null, 2))}`;
         const link = document.createElement("a");
         link.href = jsonString;
-        link.download = "teamup_configurations.json";
+        link.download = `teamup_config_${activeUser}.json`;
         link.click();
     };
 
@@ -235,12 +257,12 @@ export default function AdminPage() {
                 if (typeof (text) === 'string') {
                     const parsedData = JSON.parse(text);
                     
-                    // NEW: Check for new format (AppData) first
+                    // NEW: Check for new format (UserData)
                     if (parsedData.configurations && parsedData.activeConfigurationId) {
-                        updateAppData(parsedData);
+                        updateUserData(parsedData);
                         toast({ title: "Importazione completata", description: "Le configurazioni sono state caricate." });
                     } 
-                    // NEW: Check for old format (Config) and convert it
+                    // OLD format check (Config)
                     else if (parsedData.gyms && parsedData.teams && parsedData.sessions) {
                          const convertedSessions = parsedData.sessions.map((s: any) => {
                             const { coachId, ...rest } = s;
@@ -253,11 +275,9 @@ export default function AdminPage() {
                             name: "Configurazione Importata",
                             coaches: parsedData.coaches || [], // Ensure coaches is present
                         };
-                        const newAppData = {
-                            configurations: [...appData.configurations, newConfig],
-                            activeConfigurationId: newConfig.id
-                        };
-                        updateAppData(newAppData);
+                         if (!userData) return;
+                        const newUserConfigurations = [...userData.configurations, newConfig];
+                        updateUserData({ ...userData, configurations: newUserConfigurations, activeConfigurationId: newConfig.id });
                         toast({ title: "Importazione completata", description: "La vecchia configurazione è stata importata e salvata come una nuova." });
                     }
                     else {
@@ -274,10 +294,12 @@ export default function AdminPage() {
     
     // --- Configuration Handlers ---
     const handleSetActiveConfig = (configId: string) => {
-        updateAppData({ ...appData, activeConfigurationId: configId });
+        if (!userData) return;
+        updateUserData({ ...userData, activeConfigurationId: configId });
     }
 
     const handleSaveAs = () => {
+        if (!userData || !activeConfig) return;
         const newName = prompt("Inserisci un nome per la nuova configurazione:");
         if (newName) {
             const newConfig: Config = {
@@ -285,40 +307,42 @@ export default function AdminPage() {
                 id: `config-${Date.now()}`,
                 name: newName
             };
-            const newAppData = {
-                configurations: [...appData.configurations, newConfig],
-                activeConfigurationId: newConfig.id
-            };
-            updateAppData(newAppData);
+            const newUserConfigurations = [...userData.configurations, newConfig];
+            updateUserData({ ...userData, configurations: newUserConfigurations, activeConfigurationId: newConfig.id });
             toast({ title: "Configurazione salvata", description: `Creata nuova configurazione "${newName}".` });
         }
     }
     
     const handleRename = () => {
+        if (!userData || !activeConfig) return;
         const newName = prompt(`Inserisci il nuovo nome per "${activeConfig.name}":`, activeConfig.name);
         if (newName) {
-            const newConfigurations = appData.configurations.map(c => 
+            const newConfigurations = userData.configurations.map(c => 
                 c.id === activeConfig.id ? {...c, name: newName } : c
             );
-            updateAppData({ ...appData, configurations: newConfigurations });
+            updateUserData({ ...userData, configurations: newConfigurations });
             toast({ title: "Configurazione rinominata" });
         }
     }
     
     const handleDeleteConfig = () => {
-         if (appData.configurations.length <= 1) {
+         if (!userData || !activeConfig) return;
+         if (userData.configurations.length <= 1) {
              toast({ title: "Azione non consentita", description: "Non puoi eliminare l'unica configurazione esistente.", variant: "destructive" });
             return;
         }
         if (!confirm(`Sei sicuro di voler eliminare la configurazione "${activeConfig.name}"?`)) {
             return;
         }
-        const newConfigurations = appData.configurations.filter(c => c.id !== activeConfig.id);
+        const newConfigurations = userData.configurations.filter(c => c.id !== activeConfig.id);
         const newActiveId = newConfigurations[0].id;
-        updateAppData({ configurations: newConfigurations, activeConfigurationId: newActiveId });
+        updateUserData({ configurations: newConfigurations, activeConfigurationId: newActiveId });
         toast({ title: "Configurazione eliminata", description: `"${activeConfig.name}" è stata rimossa.` });
     }
 
+    if (!userData || !activeConfig) {
+        return <div className="flex items-center justify-center min-h-screen">Loading or redirecting...</div>;
+    }
 
     return (
         <TooltipProvider>
@@ -342,7 +366,7 @@ export default function AdminPage() {
                         </Label>
                         <Input id="import-json" type="file" accept=".json" className="hidden" onChange={handleImport} />
                         <Link href="/dashboard"><Button variant="outline"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Button></Link>
-                        <Link href="/"><Button variant="outline">Torna allo Scheduler</Button></Link>
+                        <Link href="/scheduler"><Button variant="outline">Torna allo Scheduler</Button></Link>
                     </div>
                 </header>
 
@@ -359,7 +383,7 @@ export default function AdminPage() {
                                     <SelectValue placeholder="Seleziona una configurazione" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {appData.configurations.map(c => (
+                                    {userData.configurations.map(c => (
                                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                     ))}
                                 </SelectContent>

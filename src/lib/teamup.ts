@@ -1,5 +1,6 @@
 
 
+
 // --- TYPES ---
 
 export interface TimeSlot {
@@ -20,7 +21,7 @@ export interface Gym {
 }
 
 export interface Team {
-  id: string;
+  id:string;
   name: string;
   seasonStartDate: string; // YYYY-MM-DD
   seasonEndDate: string; // YYYY-MM-DD
@@ -52,9 +53,14 @@ export interface Config {
     teamColors: { [key: string]: string };
 }
 
-export interface AppData {
+export interface UserData {
     configurations: Config[];
     activeConfigurationId: string;
+}
+
+export interface AppData {
+    users: { [username: string]: string }; // username: password
+    userData: { [username: string]: UserData };
 }
 
 // --- MOCK DATA ---

@@ -6,10 +6,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach } from '@/lib/teamup';
+import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach, UserData } from '@/lib/teamup';
 import { ArrowLeft, Printer, Building2, Users, Calendar, AlertCircle, UserCheck } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { useRouter } from 'next/navigation';
 
 const DAYS_OF_WEEK = [
     { key: 1, name: 'Lunedì' },
@@ -29,25 +30,36 @@ function formatTime(minutesFromDayStart: number | null) {
 }
 
 export default function PrintPage() {
-    const [data, setData] = useState<Config>({ ...mockData });
+    const [data, setData] = useState<Config | null>(null);
     const [viewType, setViewType] = useState<'gym' | 'team' | 'day' | 'coach'>('gym');
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const router = useRouter();
 
     const fetchData = useCallback(() => {
         if (typeof window !== 'undefined') {
+            const loggedInUser = localStorage.getItem('teamup_active_user');
+            if (!loggedInUser) {
+                router.replace('/login');
+                return;
+            }
+
             const savedData = localStorage.getItem('teamup_data');
             try {
                 if (savedData) {
                     const parsedAppData: AppData = JSON.parse(savedData);
-                    const activeConfig = parsedAppData.configurations.find(c => c.id === parsedAppData.activeConfigurationId);
-                    if (activeConfig) {
-                        setData(activeConfig);
-                        // Set initial selectedId based on viewType
-                        if (viewType === 'gym' && activeConfig.gyms.length > 0) setSelectedId(activeConfig.gyms[0].id);
-                        if (viewType === 'team' && activeConfig.teams.length > 0) setSelectedId(activeConfig.teams[0].id);
-                        if (viewType === 'coach' && (activeConfig.coaches || []).length > 0) setSelectedId(activeConfig.coaches[0].id);
-                        if (viewType === 'day') setSelectedId('1');
-                        return;
+                    const userData = parsedAppData.userData[loggedInUser];
+                    if (userData && userData.configurations) {
+                        const activeConfig = userData.configurations.find(c => c.id === userData.activeConfigurationId);
+                        if (activeConfig) {
+                            setData(activeConfig);
+                            // Set initial selectedId based on viewType
+                            if (viewType === 'gym' && activeConfig.gyms.length > 0) setSelectedId(activeConfig.gyms[0].id);
+                            else if (viewType === 'team' && activeConfig.teams.length > 0) setSelectedId(activeConfig.teams[0].id);
+                            else if (viewType === 'coach' && (activeConfig.coaches || []).length > 0) setSelectedId(activeConfig.coaches[0].id);
+                            else if (viewType === 'day') setSelectedId('1');
+                            else setSelectedId(null);
+                            return;
+                        }
                     }
                 }
             } catch (e) {
@@ -55,13 +67,14 @@ export default function PrintPage() {
             }
         }
         setData(mockData);
-    }, [viewType]);
+    }, [viewType, router]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
     
     useEffect(() => {
+        if (!data) return;
         // Reset selectedId when viewType changes
         if (viewType === 'gym' && data.gyms.length > 0) setSelectedId(data.gyms[0].id);
         else if (viewType === 'team' && data.teams.length > 0) setSelectedId(data.teams[0].id);
@@ -82,9 +95,9 @@ export default function PrintPage() {
             };
         }
     }, []);
-    
+
     const renderContent = () => {
-        if (!selectedId) {
+        if (!selectedId || !data) {
              return <div className="p-8 text-center text-muted-foreground"><AlertCircle className="mx-auto h-8 w-8 mb-4"/>Nessun elemento da visualizzare. Controlla la configurazione nel pannello Admin.</div>;
         }
 
@@ -102,6 +115,10 @@ export default function PrintPage() {
         }
     };
 
+    if (!data) {
+        return <div className="flex items-center justify-center min-h-screen">Loading or redirecting...</div>;
+    }
+
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -110,7 +127,7 @@ export default function PrintPage() {
                     <Printer /> Stampa planner allenamenti
                 </h1>
                 <div className="flex items-center gap-2">
-                     <Link href="/"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
+                     <Link href="/scheduler"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
                 </div>
             </header>
 
@@ -121,7 +138,7 @@ export default function PrintPage() {
                         <CardDescription>Scegli cosa vuoi visualizzare. Il contenuto verrà generato qui sotto in un formato A4, pronto per la stampa o il salvataggio in PDF.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex flex-wrap items-end gap-4">
+                       <div className="flex flex-wrap items-end gap-4">
                             <div>
                                 <label className="text-sm font-medium mb-1 block">Tipo di Vista</label>
                                 <Select value={viewType} onValueChange={(value) => setViewType(value as any)}>

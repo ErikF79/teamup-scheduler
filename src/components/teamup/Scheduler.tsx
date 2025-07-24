@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState, createContext, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
-import { initialData as mockData, Session, Gym, Team, Config, AppData, Coach } from '@/lib/teamup';
+import { initialData as mockData, Session, Gym, Team, Config, AppData, Coach, UserData } from '@/lib/teamup';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, GripVertical, Users, CalendarDays, Eye, Clock, RefreshCw, User, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Header } from "@/components/teamup/Header";
 import { MultiSelect } from "react-multi-select-component";
+import { useRouter } from 'next/navigation';
 
 
 // --- CONSTANTS ---
@@ -78,36 +79,47 @@ export default function SchedulerContainer() {
 
 function Scheduler() {
   const { toast } = useToast();
-  const [appData, setAppData] = useState<AppData>({ configurations: [mockData], activeConfigurationId: mockData.id });
+  const [activeUser, setActiveUser] = useState<string | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [placingSessionInfo, setPlacingSessionInfo] = useState<PlacingSessionInfo | null>(null);
+  const router = useRouter();
   
   const reloadData = useCallback(() => {
     if (typeof window !== 'undefined') {
+        const loggedInUser = localStorage.getItem('teamup_active_user');
+        if (!loggedInUser) {
+            router.replace('/login');
+            return;
+        }
+        setActiveUser(loggedInUser);
+
         const savedData = localStorage.getItem('teamup_data');
         try {
             if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                if (parsedData.configurations && parsedData.activeConfigurationId) {
-                    setAppData(parsedData);
-                     toast({ title: "Dati Aggiornati", description: "La configurazione attiva è stata ricaricata." });
-                     return;
+                const parsedData: AppData = JSON.parse(savedData);
+                if (parsedData.userData && parsedData.userData[loggedInUser]) {
+                    setUserData(parsedData.userData[loggedInUser]);
+                    toast({ title: "Dati Aggiornati", description: "La configurazione attiva è stata ricaricata." });
+                    return;
                 }
             }
         } catch (e) {
             console.error("Failed to load data from localStorage", e);
-             toast({ title: "Errore", description: "Impossibile caricare i dati.", variant: "destructive" });
+            toast({ title: "Errore", description: "Impossibile caricare i dati.", variant: "destructive" });
         }
+        // Fallback to initial structure if something is wrong
+        setUserData({ configurations: [mockData], activeConfigurationId: mockData.id });
     }
-    setAppData({ configurations: [mockData], activeConfigurationId: mockData.id });
-  }, [toast]);
+  }, [router, toast]);
 
   useEffect(() => {
     reloadData();
   }, [reloadData]);
 
   const activeConfig = useMemo(() => {
-    const config = appData.configurations.find(c => c.id === appData.activeConfigurationId) || appData.configurations[0] || mockData;
+    if (!userData) return null;
+    const config = userData.configurations.find(c => c.id === userData.activeConfigurationId) || userData.configurations[0] || mockData;
     // Ensure coaches array exists for backward compatibility
     if (!config.coaches) {
         config.coaches = [];
@@ -120,25 +132,34 @@ function Scheduler() {
     });
 
     return config;
-  }, [appData]);
+  }, [userData]);
 
+
+  const updateUserData = (newUserData: UserData) => {
+      if (typeof window !== 'undefined' && activeUser) {
+          const savedData = localStorage.getItem('teamup_data');
+          const appData: AppData = savedData ? JSON.parse(savedData) : { users: {}, userData: {} };
+          appData.userData[activeUser] = newUserData;
+          localStorage.setItem('teamup_data', JSON.stringify(appData));
+          setUserData(newUserData);
+      }
+  };
 
   const updateSessions = (newSessions: Session[]) => {
-      const newConfigurations = appData.configurations.map(c => {
-            if (c.id === appData.activeConfigurationId) {
+      if (!userData || !activeConfig) return;
+      
+      const newConfigurations = userData.configurations.map(c => {
+            if (c.id === userData.activeConfigurationId) {
                 return { ...c, sessions: newSessions };
             }
             return c;
       });
-      const newAppData = { ...appData, configurations: newConfigurations };
-      setAppData(newAppData);
-
-      if (typeof window !== 'undefined') {
-          localStorage.setItem('teamup_data', JSON.stringify(newAppData));
-      }
+      const newUserData = { ...userData, configurations: newConfigurations };
+      updateUserData(newUserData);
   };
 
   const validateMove = (sessionToMove: Session, newGymId: string, newDay: number, newStartTime: number): boolean => {
+    if (!activeConfig) return false;
     const sessionEndMinutes = newStartTime + sessionToMove.duration;
 
     // --- VALIDATION 1: Check Gym Availability ---
@@ -187,6 +208,7 @@ function Scheduler() {
   }
 
   const moveSession = (sessionId: string, newGymId: string | null, newDay: number | null, newStartTime: number | null): boolean => {
+    if (!activeConfig) return false;
     const sessionToMove = activeConfig.sessions.find(s => s.id === sessionId);
     if (!sessionToMove) return false;
 
@@ -217,6 +239,7 @@ function Scheduler() {
   };
 
   const assignCoachToSession = (coachId: string, sessionId: string) => {
+      if (!activeConfig) return;
       const newSessions = activeConfig.sessions.map(s => {
         if (s.id === sessionId) {
             // Avoid adding duplicates
@@ -235,6 +258,7 @@ function Scheduler() {
   };
 
     const updateSessionDetails = (sessionId: string, newStartTime: number, newCoachIds: string[]): boolean => {
+        if (!activeConfig) return false;
         const sessionToUpdate = activeConfig.sessions.find(s => s.id === sessionId);
         if (!sessionToUpdate || !sessionToUpdate.gymId || !sessionToUpdate.day) return false;
         
@@ -255,16 +279,23 @@ function Scheduler() {
 
 
   const getSessionsByGymAndDay = (gymId: string, day: number) => {
+    if (!activeConfig) return [];
     return activeConfig.sessions.filter(session => session.gymId === gymId && session.day === day);
   };
 
   const getUnassignedSessions = () => {
+    if (!activeConfig) return [];
       return activeConfig.sessions.filter(s => s.gymId === null);
   }
 
   const getUnassignedCoaches = () => {
+      if (!activeConfig) return [];
       const assignedCoachIds = new Set(activeConfig.sessions.flatMap(s => s.coachIds || []));
       return activeConfig.coaches.filter(c => !assignedCoachIds.has(c.id));
+  }
+
+  if (!activeConfig || !activeUser) {
+      return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
   return (

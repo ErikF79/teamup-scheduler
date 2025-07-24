@@ -105,7 +105,7 @@ export default function LoginPage() {
                                     </div>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button className="w-full" type="submit">Accedi</Button>
+                                    <Button className="w-full border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900" variant="outline" type="submit">Accedi</Button>
                                 </CardFooter>
                             </Card>
                         </form>
@@ -128,7 +128,7 @@ export default function LoginPage() {
                                     </div>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button className="w-full" type="submit">Registra Nuovo Utente</Button>
+                                    <Button className="w-full border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900" variant="outline" type="submit">Registra Nuovo Utente</Button>
                                 </CardFooter>
                             </Card>
                         </form>

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useState, createContext, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -301,15 +300,15 @@ function Scheduler() {
   return (
     <SchedulerContext.Provider value={{ ...activeConfig, moveSession, assignCoachToSession, updateSessionDetails, getSessionsByGymAndDay, getUnassignedSessions, getUnassignedCoaches, setEditingSession, placingSessionInfo, setPlacingSessionInfo }}>
         <Header onRefresh={reloadData} configName={activeConfig.name} />
-        <div className="flex-grow flex p-4 gap-4 overflow-hidden h-full">
-            <div className="flex flex-col gap-4">
+        <div className="flex-grow flex flex-col lg:flex-row p-4 gap-4 overflow-hidden h-full">
+            <div className="flex-shrink-0 lg:w-72 flex flex-col gap-4">
                 <UnassignedSessionsColumn />
                 <UnassignedCoachesColumn />
             </div>
              <div className="flex-grow flex flex-col h-full overflow-hidden">
                  <Tabs defaultValue="gym-view" className="flex-grow flex flex-col h-full overflow-hidden">
                     <div className="flex-shrink-0 flex items-center justify-between pb-4">
-                         <TabsList>
+                        <TabsList className="w-full md:w-auto grid grid-cols-2 md:inline-flex">
                             <TabsTrigger value="gym-view"><Building2 className="mr-2 h-4 w-4"/>Vista per Palestra</TabsTrigger>
                             <TabsTrigger value="day-view"><CalendarDays className="mr-2 h-4 w-4"/>Vista per Giorno</TabsTrigger>
                         </TabsList>
@@ -363,11 +362,14 @@ function GymViewScheduler() {
     return (
         <Tabs defaultValue={gyms[0].id} className="flex-grow flex flex-col h-full overflow-hidden">
              <div className="flex-shrink-0 pb-4">
-                <TabsList>
-                    {gyms.map(gym => (
-                        <TabsTrigger key={gym.id} value={gym.id}>{gym.name}</TabsTrigger>
-                    ))}
-                </TabsList>
+                <ScrollArea>
+                    <TabsList>
+                        {gyms.map(gym => (
+                            <TabsTrigger key={gym.id} value={gym.id}>{gym.name}</TabsTrigger>
+                        ))}
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
              </div>
             <ScrollArea className="flex-grow h-full" viewportRef={viewportRef}>
                  {gyms.map(gym => (
@@ -375,6 +377,7 @@ function GymViewScheduler() {
                         <GymScheduleGrid gym={gym} />
                     </TabsContent>
                 ))}
+                 <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </Tabs>
     )
@@ -407,14 +410,14 @@ function DayViewScheduler() {
     return (
          <Tabs defaultValue="1" className="flex-grow flex flex-col h-full overflow-hidden">
              <div className="flex-shrink-0 pb-4">
-                <TabsList className="grid w-full grid-cols-7">
+                 <TabsList className="grid w-full grid-cols-3 md:grid-cols-7">
                     {DAYS_OF_WEEK.map(day => (
                         <TabsTrigger key={day.key} value={String(day.key)}>{day.name}</TabsTrigger>
                     ))}
                 </TabsList>
              </div>
             <ScrollArea className="flex-grow h-full" viewportRef={viewportRef}>
-                 <div className="grid grid-cols-[auto_repeat(var(--gym-count),1fr)] min-w-full" style={{'--gym-count': gyms.length} as React.CSSProperties}>
+                 <div className="grid grid-cols-[auto_repeat(var(--gym-count),1fr)] min-w-full" style={{'--gym-count': gyms.length, 'minWidth': `${gyms.length * 150 + 60}px`} as React.CSSProperties}>
                     {/* Time Column Header */}
                     <div className="row-span-1 col-span-1 bg-card border-r sticky top-0 z-20">
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
@@ -444,6 +447,7 @@ function DayViewScheduler() {
                         </TabsContent>
                     ))}
                 </div>
+                 <ScrollBar orientation="horizontal" />
             </ScrollArea>
         </Tabs>
     )
@@ -581,7 +585,7 @@ const UnassignedSessionsColumn = () => {
 
   return (
     <Card 
-        className={`w-72 flex flex-col transition-colors shrink-0 ${isOver ? 'bg-accent/10' : ''}`}
+        className={`w-full lg:w-72 flex flex-col transition-colors shrink-0 ${isOver ? 'bg-accent/10' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -595,7 +599,7 @@ const UnassignedSessionsColumn = () => {
           </span>
         </CardTitle>
       </CardHeader>
-      <ScrollArea>
+      <ScrollArea className="h-48 lg:h-auto">
         <CardContent className="p-4 space-y-3">
           {unassignedSessions.length > 0 ? (
               unassignedSessions.map(session => <div key={session.id} className="h-20"><SessionCard session={session} /></div>)
@@ -623,7 +627,7 @@ const UnassignedCoachesColumn = () => {
     if (coaches.length === 0) return null;
 
     return (
-        <Card className="w-72 flex flex-col shrink-0">
+        <Card className="w-full lg:w-72 flex flex-col shrink-0">
             <CardHeader className="border-b">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                     <UserCheck className="h-5 w-5 text-primary" />
@@ -633,7 +637,7 @@ const UnassignedCoachesColumn = () => {
                     </span>
                 </CardTitle>
             </CardHeader>
-            <ScrollArea>
+            <ScrollArea className="h-48 lg:h-auto">
                 <CardContent className="p-4 space-y-3">
                     {unassignedCoaches.length > 0 ? (
                         unassignedCoaches.map(coach => <CoachCard key={coach.id} coach={coach} />)
@@ -711,7 +715,7 @@ const GymScheduleGrid = ({ gym }: { gym: Gym }) => {
     return (
         <Card>
             <CardContent className="p-0">
-                <div className="grid grid-cols-[auto_repeat(7,1fr)] min-w-full">
+                <div className="grid grid-cols-[auto_repeat(7,1fr)] min-w-max">
                     {/* Time Column Header */}
                     <div className="row-span-1 col-span-1 bg-card border-r sticky top-0 z-20">
                          <div className="h-12 border-b flex items-center justify-center font-semibold text-muted-foreground">Orario</div>
@@ -781,7 +785,7 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     
     return (
         <div
-            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-background"
+            className="row-start-2 col-start-auto relative border-b border-l transition-colors bg-background min-w-[150px]"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}

@@ -18,27 +18,27 @@ export function Header({ onRefresh, configName }: { onRefresh: () => void, confi
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-card">
-      <h1 className="text-xl font-bold text-primary">
-        TeamUp Scheduler: <span className="font-medium text-foreground">{configName}</span>
+      <h1 className="text-lg md:text-xl font-bold text-primary truncate">
+        TeamUp: <span className="font-medium text-foreground">{configName}</span>
       </h1>
       <div className="flex items-center gap-2">
-        <Button variant="outline" onClick={onRefresh}>
+        <Button variant="outline" onClick={onRefresh} className="hidden md:inline-flex">
             <RefreshCw className="mr-2 h-4 w-4" />
             Aggiorna Dati
         </Button>
-         <Link href="/print">
+         <Link href="/print" className="hidden md:block">
             <Button variant="outline">
                 <Printer className="mr-2 h-4 w-4" />
                 Stampa
             </Button>
         </Link>
-        <Link href="/dashboard">
+        <Link href="/dashboard" className="hidden md:block">
             <Button variant="outline">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
                 Dashboard
             </Button>
         </Link>
-        <Link href="/admin">
+        <Link href="/admin" className="hidden md:block">
             <Button variant="outline">
             <Settings className="mr-2 h-4 w-4" />
             Admin Panel
@@ -46,7 +46,7 @@ export function Header({ onRefresh, configName }: { onRefresh: () => void, confi
         </Link>
         <Button variant="destructive" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
-            Logout
+            <span className="hidden sm:inline">Logout</span>
         </Button>
       </div>
     </header>

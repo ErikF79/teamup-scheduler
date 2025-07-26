@@ -348,25 +348,25 @@ export default function AdminPage() {
         <TooltipProvider>
             <div className="min-h-screen bg-background">
                 <header className="flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10">
-                    <h1 className="text-xl font-bold text-primary">Admin Panel</h1>
+                    <h1 className="text-lg md:text-xl font-bold text-primary">Admin Panel</h1>
                     <div className="flex items-center gap-2">
                          <Tooltip>
-                            <TooltipTrigger asChild><Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Esporta Tutto</Button></TooltipTrigger>
+                            <TooltipTrigger asChild><Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Esporta Tutto</span></Button></TooltipTrigger>
                             <TooltipContent><p>Esporta tutte le configurazioni in un unico file.</p></TooltipContent>
                          </Tooltip>
                          <Label htmlFor="import-json" className="cursor-pointer">
                              <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                                       <Upload className="mr-2 h-4 w-4" /> Importa
+                                       <Upload className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Importa</span>
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent><p>Importa un file con una o più configurazioni.</p></TooltipContent>
                             </Tooltip>
                         </Label>
                         <Input id="import-json" type="file" accept=".json" className="hidden" onChange={handleImport} />
-                        <Link href="/dashboard"><Button variant="outline"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Button></Link>
-                        <Link href="/scheduler"><Button variant="outline">Torna allo Scheduler</Button></Link>
+                        <Link href="/dashboard" className="hidden md:block"><Button variant="outline"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Button></Link>
+                        <Link href="/scheduler"><Button variant="outline">Scheduler</Button></Link>
                     </div>
                 </header>
 
@@ -376,10 +376,10 @@ export default function AdminPage() {
                             <CardTitle>Gestione Configurazioni</CardTitle>
                             <CardDescription>Salva, carica e gestisci diverse configurazioni di palestre e squadre.</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex items-center gap-4">
+                        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                              <Label>Configurazione Attiva:</Label>
                             <Select value={activeConfig.id} onValueChange={handleSetActiveConfig}>
-                                <SelectTrigger className="w-[280px]">
+                                <SelectTrigger className="w-full sm:w-[280px]">
                                     <SelectValue placeholder="Seleziona una configurazione" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -389,7 +389,7 @@ export default function AdminPage() {
                                 </SelectContent>
                             </Select>
                             <div className="flex items-center gap-2">
-                                <Button variant="outline" onClick={handleSaveAs}><Save className="mr-2 h-4 w-4" /> Salva come...</Button>
+                                <Button variant="outline" onClick={handleSaveAs}><Save className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Salva come...</span></Button>
                                 <Button variant="ghost" size="icon" onClick={handleRename}><Edit className="h-4 w-4" /></Button>
                                <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -415,7 +415,7 @@ export default function AdminPage() {
                         </CardContent>
                     </Card>
 
-                    <div className="grid md:grid-cols-3 gap-8 items-start">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Building2 className="text-primary" /> Gestione Palestre</CardTitle>
@@ -737,7 +737,7 @@ function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
                 <Input id={`team-name-${team.id}`} value={teamData.name} onChange={(e) => setTeamData({ ...teamData, name: e.target.value })} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor={`team-start-${team.id}`}>Inizio Stagione</Label>
                     <Input id={`team-start-${team.id}`} type="date" value={teamData.seasonStartDate} onChange={(e) => setTeamData({ ...teamData, seasonStartDate: e.target.value })} />

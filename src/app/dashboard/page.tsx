@@ -151,17 +151,17 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen bg-background text-foreground">
              <header className="flex items-center justify-between p-4 border-b bg-card">
-                <h1 className="text-xl font-bold text-primary flex items-center gap-2">
-                    <LayoutDashboard/> Dashboard Statistiche per "{data.name}"
+                <h1 className="text-lg md:text-xl font-bold text-primary flex items-center gap-2 truncate">
+                    <LayoutDashboard/> Dashboard: "{data.name}"
                 </h1>
                 <div className="flex items-center gap-2">
-                    <Link href="/scheduler"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
+                    <Link href="/scheduler"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Scheduler</span></Button></Link>
                 </div>
             </header>
 
             <main className="p-4 md:p-8">
                 {/* General Stats */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 mb-8">
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-8">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Palestre</CardTitle>
@@ -244,8 +244,8 @@ export default function DashboardPage() {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Bar dataKey="Ore Disponibili" fill="#000080" />
-                                    <Bar dataKey="Ore Richieste" fill="#800000" />
+                                    <Bar dataKey="Ore Disponibili" fill="hsl(var(--primary))" />
+                                    <Bar dataKey="Ore Richieste" fill="hsl(var(--destructive))" />
                                 </BarChart>
                              </ResponsiveContainer>
                         </div>
@@ -258,15 +258,15 @@ export default function DashboardPage() {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Bar dataKey="Ore Disponibili" fill="#000080" />
-                                    <Bar dataKey="Ore Richieste" fill="#800000" />
+                                    <Bar dataKey="Ore Disponibili" fill="hsl(var(--primary))" />
+                                    <Bar dataKey="Ore Richieste" fill="hsl(var(--destructive))" />
                                 </BarChart>
                              </ResponsiveContainer>
                         </div>
                     </CardContent>
                 </Card>
 
-                <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                      {/* Team Details */}
                     <Card className="xl:col-span-1">
                         <CardHeader>
@@ -322,7 +322,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                     {/* Coach Details */}
-                    <Card className="xl:col-span-1">
+                    <Card className="lg:col-span-2 xl:col-span-1">
                         <CardHeader>
                             <CardTitle>Dettaglio Coach</CardTitle>
                             <CardDescription>Riepilogo del carico di lavoro per ogni allenatore.</CardDescription>

@@ -812,30 +812,6 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                 })}
             </div>
 
-            {/* Unavailable time patterns */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
-                {allIntervals.map(interval => {
-                    const isAvailable = slots.some(slot => interval.start >= slot.start && interval.end <= slot.end);
-                    if (isAvailable) return null;
-
-                    const top = (interval.start / totalMinutesInView) * 100;
-                    const height = (15 / totalMinutesInView) * 100;
-                    
-                    return (
-                         <div 
-                            key={`unavailable-${interval.start}`} 
-                            className="absolute w-full" 
-                            style={{ 
-                                top: `${top}%`, 
-                                height: `${height}%`,
-                                backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 4px, hsla(0,0%,0%,0.04) 4px, hsla(0,0%,0%,0.04) 8px))'
-                            }}
-                        />
-                    )
-                })}
-            </div>
-
-
             {/* Scheduled Sessions */}
             <div className="relative z-10 h-full">
                 {getSessionsByGymAndDay(gym.id, dayKey).map(session => {

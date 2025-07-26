@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach, UserData } from '@/lib/teamup';
-import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard, Hourglass, Percent, UserCheck } from 'lucide-react';
+import { Building2, Users, Calendar, ArrowLeft, LayoutDashboard, Hourglass, Percent, UserCheck, Menu } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 function getWeeksBetween(d1: Date, d2: Date) {
@@ -151,11 +152,27 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen bg-background text-foreground">
              <header className="flex items-center justify-between p-4 border-b bg-card">
-                <h1 className="text-lg md:text-xl font-bold text-primary flex items-center gap-2 truncate">
-                    <LayoutDashboard/> Dashboard: "{data.name}"
-                </h1>
-                <div className="flex items-center gap-2">
-                    <Link href="/scheduler"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Scheduler</span></Button></Link>
+                 <div className="flex items-center gap-4">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <Menu className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onSelect={() => router.push('/scheduler')}>
+                                <LayoutDashboard className="mr-2 h-4 w-4" />
+                                <span>Scheduler</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => router.push('/admin')}>
+                                <LayoutDashboard className="mr-2 h-4 w-4" />
+                                <span>Admin Panel</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <h1 className="text-lg md:text-xl font-bold text-primary flex items-center gap-2 truncate">
+                        <LayoutDashboard/> Dashboard: "{data.name}"
+                    </h1>
                 </div>
             </header>
 
@@ -356,3 +373,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    

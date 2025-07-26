@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard, Plus, Trash, Save, FilePlus, Edit, TrashIcon, UserCheck } from "lucide-react";
+import { Building2, PlusCircle, Users, Download, Upload, Pencil, Trash2, X, Check, LayoutDashboard, Plus, Trash, Save, FilePlus, Edit, TrashIcon, UserCheck, Settings, Menu } from "lucide-react";
 import Link from "next/link";
 import { initialData as mockData, Session, Gym, Team, DayAvailability, TimeSlot, Config, AppData, UserData, Coach } from '@/lib/teamup';
 import {
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 
 // --- Main Admin Page Component ---
@@ -347,11 +348,30 @@ export default function AdminPage() {
     return (
         <TooltipProvider>
             <div className="min-h-screen bg-background">
-                <header className="flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10">
-                    <h1 className="text-lg md:text-xl font-bold text-primary">Admin Panel</h1>
+                 <header className="flex items-center justify-between p-4 border-b bg-card sticky top-0 z-10">
+                     <div className="flex items-center gap-4">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="icon">
+                                    <Menu className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuItem onSelect={() => router.push('/scheduler')}>
+                                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                                    <span>Scheduler</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => router.push('/dashboard')}>
+                                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                                    <span>Dashboard</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <h1 className="text-lg md:text-xl font-bold text-primary">Admin Panel</h1>
+                    </div>
                     <div className="flex items-center gap-2">
                          <Tooltip>
-                            <TooltipTrigger asChild><Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Esporta Tutto</span></Button></TooltipTrigger>
+                            <TooltipTrigger asChild><Button variant="outline" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Esporta</span></Button></TooltipTrigger>
                             <TooltipContent><p>Esporta tutte le configurazioni in un unico file.</p></TooltipContent>
                          </Tooltip>
                          <Label htmlFor="import-json" className="cursor-pointer">
@@ -365,8 +385,6 @@ export default function AdminPage() {
                             </Tooltip>
                         </Label>
                         <Input id="import-json" type="file" accept=".json" className="hidden" onChange={handleImport} />
-                        <Link href="/dashboard" className="hidden md:block"><Button variant="outline"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Button></Link>
-                        <Link href="/scheduler"><Button variant="outline">Scheduler</Button></Link>
                     </div>
                 </header>
 
@@ -829,3 +847,5 @@ function CoachEditForm({ coach, onSave, onCancel }: CoachEditFormProps) {
         </div>
     )
 }
+
+    

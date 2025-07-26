@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach, UserData } from '@/lib/teamup';
-import { ArrowLeft, Printer, Building2, Users, Calendar, AlertCircle, UserCheck } from 'lucide-react';
+import { ArrowLeft, Printer, Building2, Users, Calendar, AlertCircle, UserCheck, Menu, LayoutDashboard, Settings } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const DAYS_OF_WEEK = [
     { key: 1, name: 'Lunedì' },
@@ -123,11 +124,31 @@ export default function PrintPage() {
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
             <header className="flex items-center justify-between p-4 border-b bg-card no-print">
-                <h1 className="text-xl font-bold text-primary flex items-center gap-2">
-                    <Printer /> Stampa planner allenamenti
-                </h1>
-                <div className="flex items-center gap-2">
-                     <Link href="/scheduler"><Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4" /> Torna allo Scheduler</Button></Link>
+                 <div className="flex items-center gap-4">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <Menu className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onSelect={() => router.push('/scheduler')}>
+                                <LayoutDashboard className="mr-2 h-4 w-4" />
+                                <span>Scheduler</span>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem onSelect={() => router.push('/dashboard')}>
+                                <LayoutDashboard className="mr-2 h-4 w-4" />
+                                <span>Dashboard</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => router.push('/admin')}>
+                                <Settings className="mr-2 h-4 w-4" />
+                                <span>Admin Panel</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <h1 className="text-xl font-bold text-primary flex items-center gap-2">
+                        <Printer /> Stampa planner allenamenti
+                    </h1>
                 </div>
             </header>
 
@@ -440,3 +461,5 @@ const CoachPrintView = ({ coachId, data }: { coachId: string, data: Config }) =>
         </div>
     );
 };
+
+    

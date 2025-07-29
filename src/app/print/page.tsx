@@ -84,19 +84,6 @@ export default function PrintPage() {
         else setSelectedId(null);
     }, [viewType, data]);
     
-    useEffect(() => {
-        const printButton = document.getElementById('print-button');
-        if (printButton) {
-            const handlePrint = () => window.print();
-            printButton.addEventListener('click', handlePrint);
-
-            // Cleanup
-            return () => {
-                printButton.removeEventListener('click', handlePrint);
-            };
-        }
-    }, []);
-
     const renderContent = () => {
         if (!selectedId || !data) {
              return <div className="p-8 text-center text-muted-foreground"><AlertCircle className="mx-auto h-8 w-8 mb-4"/>Nessun elemento da visualizzare. Controlla la configurazione nel pannello Admin.</div>;
@@ -219,7 +206,7 @@ export default function PrintPage() {
                             </div>
                          </div>
                          <div className="pt-4 border-t mt-4">
-                            <Button id="print-button" variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
+                            <Button onClick={() => window.print()} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
                                 <Printer className="mr-2 h-4 w-4" />Stampa / Salva PDF
                             </Button>
                         </div>
@@ -461,5 +448,3 @@ const CoachPrintView = ({ coachId, data }: { coachId: string, data: Config }) =>
         </div>
     );
 };
-
-    

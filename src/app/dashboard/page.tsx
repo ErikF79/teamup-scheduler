@@ -261,8 +261,8 @@ export default function DashboardPage() {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Bar dataKey="Ore Disponibili" fill="hsl(var(--primary))" />
-                                    <Bar dataKey="Ore Richieste" fill="hsl(var(--destructive))" />
+                                    <Bar dataKey="Ore Disponibili" fill="#000080" />
+                                    <Bar dataKey="Ore Richieste" fill="#800000" />
                                 </BarChart>
                              </ResponsiveContainer>
                         </div>
@@ -275,8 +275,8 @@ export default function DashboardPage() {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Bar dataKey="Ore Disponibili" fill="hsl(var(--primary))" />
-                                    <Bar dataKey="Ore Richieste" fill="hsl(var(--destructive))" />
+                                    <Bar dataKey="Ore Disponibili" fill="#000080" />
+                                    <Bar dataKey="Ore Richieste" fill="#800000" />
                                 </BarChart>
                              </ResponsiveContainer>
                         </div>
@@ -373,6 +373,8 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
 
     
 

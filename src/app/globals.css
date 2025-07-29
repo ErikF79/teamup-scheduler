@@ -90,6 +90,8 @@ body {
 /* Print-specific styles */
 @media print {
   body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
     background-color: #fff !important;
   }
   .no-print {
@@ -102,12 +104,13 @@ body {
     margin: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: 100% !important;
   }
    main, .print-container > * {
     visibility: visible;
   }
   @page {
-    size: A4;
+    size: A4 landscape;
     margin: 1cm;
   }
 }

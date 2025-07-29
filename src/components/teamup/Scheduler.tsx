@@ -3,7 +3,7 @@
 
 import React, { useState, createContext, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
 import { initialData as mockData, Session, Gym, Team, Config, AppData, Coach, UserData } from '@/lib/teamup';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Building2, GripVertical, Users, CalendarDays, Eye, Clock, RefreshCw, User, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Header } from "@/components/teamup/Header";
 import { MultiSelect } from "react-multi-select-component";
 import { useRouter } from 'next/navigation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 // --- CONSTANTS ---
@@ -561,9 +562,32 @@ SessionCard.displayName = "SessionCard";
 
 // --- UNASSIGNED SESSIONS COLUMN ---
 const UnassignedSessionsColumn = () => {
-  const { getUnassignedSessions, moveSession } = useScheduler();
-  const unassignedSessions = getUnassignedSessions();
+  const { getUnassignedSessions, moveSession, teams } = useScheduler();
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [isOver, setIsOver] = useState(false);
+  const unassignedSessions = getUnassignedSessions();
+
+  const getCategoryFromTeamName = (name: string) => {
+    return name.split(' ').pop() || name;
+  };
+
+  const categories = useMemo(() => {
+    const unassignedTeamIds = new Set(unassignedSessions.map(s => s.teamId));
+    const relevantTeams = teams.filter(t => unassignedTeamIds.has(t.id));
+    const uniqueCategories = [...new Set(relevantTeams.map(t => getCategoryFromTeamName(t.name)))];
+    return uniqueCategories.sort();
+  }, [unassignedSessions, teams]);
+  
+  const filteredSessions = useMemo(() => {
+      if (selectedCategory === 'all') {
+          return unassignedSessions;
+      }
+      return unassignedSessions.filter(session => {
+          const team = teams.find(t => t.id === session.teamId);
+          return team && getCategoryFromTeamName(team.name) === selectedCategory;
+      });
+  }, [unassignedSessions, selectedCategory, teams]);
+
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -590,7 +614,7 @@ const UnassignedSessionsColumn = () => {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
     >
-      <CardHeader className="border-b flex-shrink-0">
+      <CardHeader className="border-b flex-shrink-0 p-4">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
           <Users className="h-5 w-5 text-primary" />
           Sessioni da Assegnare
@@ -598,13 +622,28 @@ const UnassignedSessionsColumn = () => {
             {totalUnassigned}
           </span>
         </CardTitle>
+         <div className="pt-2">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-full h-9">
+                    <SelectValue placeholder="Filtra per categoria..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Tutte le categorie</SelectItem>
+                    {categories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
       </CardHeader>
       <ScrollArea>
         <CardContent className="p-4 space-y-3">
-          {unassignedSessions.length > 0 ? (
-              unassignedSessions.map(session => <div key={session.id} className="h-20"><SessionCard session={session} /></div>)
+          {filteredSessions.length > 0 ? (
+              filteredSessions.map(session => <div key={session.id} className="h-20"><SessionCard session={session} /></div>)
           ) : (
-              <div className="text-center text-muted-foreground pt-10">Tutte le sessioni sono state pianificate!</div>
+              <div className="text-center text-muted-foreground pt-10">
+                {unassignedSessions.length === 0 ? "Tutte le sessioni sono pianificate!" : "Nessuna sessione in questa categoria."}
+              </div>
           )}
         </CardContent>
       </ScrollArea>
@@ -757,12 +796,6 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
     const dayAvailability = gym.availability.find(d => d.key === dayKey);
     const slots = dayAvailability?.slots || [];
     const totalMinutesInView = 24 * 60; // Full day
-    
-    const allIntervals = useMemo(() => Array.from({length: totalMinutesInView / 15}, (_, i) => {
-        const start = i * 15;
-        const end = start + 15;
-        return { start, end };
-    }), [totalMinutesInView]);
     
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -1001,3 +1034,5 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
         </Dialog>
     )
 }
+
+    

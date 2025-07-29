@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach, UserData } from '@/lib/teamup';
-import { Printer, Building2, Users, Calendar, AlertCircle, UserCheck, Menu, LayoutDashboard, Settings } from 'lucide-react';
+import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach } from '@/lib/teamup';
+import { Printer, Building2, Users, Calendar, AlertCircle, UserCheck, Menu, LayoutDashboard, Settings, CalendarDays } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -24,7 +24,7 @@ function formatTime(minutesFromDayStart: number | null) {
 
 export default function PrintPage() {
     const [data, setData] = useState<Config | null>(null);
-    const [viewType, setViewType] = useState<'gym' | 'team'>('gym');
+    const [viewType, setViewType] = useState<'gym' | 'team' | 'day' | 'coach'>('gym');
     const router = useRouter();
 
 
@@ -65,12 +65,23 @@ export default function PrintPage() {
         if (!data) {
              return <div className="p-8 text-center text-gray-500"><AlertCircle className="mx-auto h-8 w-8 mb-4"/>Nessun dato da visualizzare. Controlla la configurazione nel pannello Admin.</div>;
         }
+        
+        const sortedSessions = [...data.sessions].sort((a, b) => {
+            const daySort = (a.day ?? 8) - (b.day ?? 8);
+            if (daySort !== 0) return daySort;
+            const timeSort = (a.startTime ?? 9999) - (b.startTime ?? 9999);
+            return timeSort;
+        });
 
         switch (viewType) {
             case 'gym':
-                return <GymPrintView gyms={data.gyms} sessions={data.sessions} teams={data.teams} coaches={data.coaches} />;
+                return <GymPrintView gyms={data.gyms} sessions={sortedSessions} teams={data.teams} coaches={data.coaches} />;
             case 'team':
-                return <TeamPrintView teams={data.teams} sessions={data.sessions} gyms={data.gyms} coaches={data.coaches}/>;
+                return <TeamPrintView teams={data.teams} sessions={sortedSessions} gyms={data.gyms} coaches={data.coaches}/>;
+            case 'day':
+                return <DayPrintView sessions={sortedSessions} gyms={data.gyms} teams={data.teams} coaches={data.coaches} />;
+            case 'coach':
+                 return <CoachPrintView coaches={data.coaches} sessions={sortedSessions} gyms={data.gyms} teams={data.teams} />;
             default:
                 return null;
         }
@@ -116,19 +127,21 @@ export default function PrintPage() {
                  <Card className="w-full max-w-4xl mb-8 no-print">
                     <CardHeader>
                         <CardTitle>Opzioni di Stampa</CardTitle>
-                        <CardDescription>Scegli cosa vuoi stampare e clicca il pulsante in basso per generare la vista di stampa.</CardDescription>
+                        <CardDescription>Scegli il tipo di vista e clicca il pulsante in basso per generare la tabella di stampa.</CardDescription>
                     </CardHeader>
                     <CardContent>
                        <div className="flex items-center gap-4">
                             <div>
                                 <label className="text-sm font-medium mb-1 block">Raggruppa per</label>
                                 <Select value={viewType} onValueChange={(value) => setViewType(value as any)}>
-                                    <SelectTrigger className="w-[180px]">
+                                    <SelectTrigger className="w-[220px]">
                                         <SelectValue placeholder="Seleziona vista" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="gym"><Building2 className="mr-2 h-4 w-4"/>Palestra</SelectItem>
                                         <SelectItem value="team"><Users className="mr-2 h-4 w-4"/>Squadra</SelectItem>
+                                        <SelectItem value="day"><CalendarDays className="mr-2 h-4 w-4"/>Giorno</SelectItem>
+                                        <SelectItem value="coach"><UserCheck className="mr-2 h-4 w-4"/>Coach</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -151,7 +164,7 @@ export default function PrintPage() {
 }
 
 const PrintHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
-    <div className="mb-6 text-center no-print-content">
+    <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold text-gray-800">{title}</h1>
         <p className="text-lg text-gray-600">{subtitle}</p>
         <Separator className="my-4" />
@@ -159,97 +172,172 @@ const PrintHeader = ({ title, subtitle }: { title: string, subtitle: string }) =
 );
 
 
-const GymPrintView = ({ gyms, sessions, teams, coaches }: { gyms: Gym[], sessions: Session[], teams: Team[], coaches: Coach[] }) => {
-    return (
-        <div>
-            <PrintHeader title="Palinsesto Allenamenti" subtitle="Riepilogo per Palestra" />
-            {gyms.map(gym => {
-                const gymSessions = sessions.filter(s => s.gymId === gym.id);
-                if(gymSessions.length === 0) return null;
+const GymPrintView = ({ gyms, sessions, teams, coaches }: { gyms: Gym[], sessions: Session[], teams: Team[], coaches: Coach[] }) => (
+    <div>
+        <PrintHeader title="Palinsesto Allenamenti" subtitle="Riepilogo per Palestra" />
+        {gyms.map(gym => {
+            const gymSessions = sessions.filter(s => s.gymId === gym.id);
+            if(gymSessions.length === 0) return null;
 
-                return (
-                    <div key={gym.id} className="mb-8 page-break-inside-avoid">
-                        <h2 className="text-2xl font-semibold mb-3 border-b-2 pb-2 border-primary">{gym.name}</h2>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[15%]">Giorno</TableHead>
-                                    <TableHead className="w-[15%]">Orario</TableHead>
-                                    <TableHead>Squadra</TableHead>
-                                    <TableHead>Coach</TableHead>
-                                    <TableHead className="text-right w-[10%]">Durata</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {gymSessions
-                                    .sort((a,b) => (a.day ?? 0) - (b.day ?? 0) || (a.startTime ?? 0) - (b.startTime ?? 0))
-                                    .map(session => {
-                                        const team = teams.find(t => t.id === session.teamId);
-                                        const sessionCoaches = coaches.filter(c => session.coachIds.includes(c.id));
-                                        return (
-                                            <TableRow key={session.id}>
-                                                <TableCell className="font-medium">{session.day ? DAYS_OF_WEEK[session.day - 1] : 'N/A'}</TableCell>
-                                                <TableCell>{formatTime(session.startTime)} - {formatTime(session.startTime ? session.startTime + session.duration : null)}</TableCell>
-                                                <TableCell>{team?.name || 'N/A'}</TableCell>
-                                                <TableCell>{sessionCoaches.map(c => c.name).join(', ') || 'N/D'}</TableCell>
-                                                <TableCell className="text-right">{session.duration} min</TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )
-            })}
-        </div>
-    )
-};
+            return (
+                <div key={gym.id} className="mb-8 page-break-inside-avoid">
+                    <h2 className="text-2xl font-semibold mb-3 border-b-2 pb-2 border-primary">{gym.name}</h2>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[15%]">Giorno</TableHead>
+                                <TableHead className="w-[15%]">Orario</TableHead>
+                                <TableHead>Squadra</TableHead>
+                                <TableHead>Coach</TableHead>
+                                <TableHead className="text-right w-[10%]">Durata</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {gymSessions.map(session => {
+                                const team = teams.find(t => t.id === session.teamId);
+                                const sessionCoaches = coaches.filter(c => (session.coachIds || []).includes(c.id));
+                                return (
+                                    <TableRow key={session.id}>
+                                        <TableCell className="font-medium">{session.day ? DAYS_OF_WEEK[session.day - 1] : 'N/A'}</TableCell>
+                                        <TableCell>{formatTime(session.startTime)} - {formatTime(session.startTime ? session.startTime + session.duration : null)}</TableCell>
+                                        <TableCell>{team?.name || 'N/A'}</TableCell>
+                                        <TableCell>{sessionCoaches.map(c => c.name).join(', ') || 'N/D'}</TableCell>
+                                        <TableCell className="text-right">{session.duration} min</TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+            )
+        })}
+    </div>
+);
 
-const TeamPrintView = ({ teams, sessions, gyms, coaches }: { teams: Team[], sessions: Session[], gyms: Gym[], coaches: Coach[] }) => {
-    return (
-         <div>
-            <PrintHeader title="Palinsesto Allenamenti" subtitle="Riepilogo per Squadra" />
-            {teams.map(team => {
-                const teamSessions = sessions.filter(s => s.teamId === team.id && s.gymId);
-                 if(teamSessions.length === 0) return null;
+const TeamPrintView = ({ teams, sessions, gyms, coaches }: { teams: Team[], sessions: Session[], gyms: Gym[], coaches: Coach[] }) => (
+     <div>
+        <PrintHeader title="Palinsesto Allenamenti" subtitle="Riepilogo per Squadra" />
+        {teams.map(team => {
+            const teamSessions = sessions.filter(s => s.teamId === team.id && s.gymId);
+            if(teamSessions.length === 0) return null;
 
-                return (
-                    <div key={team.id} className="mb-8 page-break-inside-avoid">
-                        <h2 className="text-2xl font-semibold mb-3 border-b-2 pb-2 border-primary">{team.name}</h2>
-                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[15%]">Giorno</TableHead>
-                                    <TableHead className="w-[15%]">Orario</TableHead>
-                                    <TableHead>Palestra</TableHead>
-                                    <TableHead>Coach</TableHead>
-                                    <TableHead className="text-right w-[10%]">Durata</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {teamSessions
-                                    .sort((a,b) => (a.day ?? 0) - (b.day ?? 0) || (a.startTime ?? 0) - (b.startTime ?? 0))
-                                    .map(session => {
-                                        const gym = gyms.find(g => g.id === session.gymId);
-                                        const sessionCoaches = coaches.filter(c => session.coachIds.includes(c.id));
-                                        return (
-                                            <TableRow key={session.id}>
-                                                <TableCell className="font-medium">{session.day ? DAYS_OF_WEEK[session.day - 1] : 'N/A'}</TableCell>
-                                                <TableCell>{formatTime(session.startTime)} - {formatTime(session.startTime ? session.startTime + session.duration : null)}</TableCell>
-                                                <TableCell>{gym?.name || 'N/A'}</TableCell>
-                                                <TableCell>{sessionCoaches.map(c => c.name).join(', ') || 'N/D'}</TableCell>
-                                                <TableCell className="text-right">{session.duration} min</TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                            </TableBody>
-                        </Table>
-                    </div>
-                )
+            return (
+                <div key={team.id} className="mb-8 page-break-inside-avoid">
+                    <h2 className="text-2xl font-semibold mb-3 border-b-2 pb-2 border-primary">{team.name}</h2>
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[15%]">Giorno</TableHead>
+                                <TableHead className="w-[15%]">Orario</TableHead>
+                                <TableHead>Palestra</TableHead>
+                                <TableHead>Coach</TableHead>
+                                <TableHead className="text-right w-[10%]">Durata</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {teamSessions.map(session => {
+                                const gym = gyms.find(g => g.id === session.gymId);
+                                const sessionCoaches = coaches.filter(c => (session.coachIds || []).includes(c.id));
+                                return (
+                                    <TableRow key={session.id}>
+                                        <TableCell className="font-medium">{session.day ? DAYS_OF_WEEK[session.day - 1] : 'N/A'}</TableCell>
+                                        <TableCell>{formatTime(session.startTime)} - {formatTime(session.startTime ? session.startTime + session.duration : null)}</TableCell>
+                                        <TableCell>{gym?.name || 'N/A'}</TableCell>
+                                        <TableCell>{sessionCoaches.map(c => c.name).join(', ') || 'N/D'}</TableCell>
+                                        <TableCell className="text-right">{session.duration} min</TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+            )
+        })}
+    </div>
+);
 
-            })}
-        </div>
-    )
-}
+const DayPrintView = ({ sessions, gyms, teams, coaches }: { sessions: Session[], gyms: Gym[], teams: Team[], coaches: Coach[] }) => (
+    <div>
+        <PrintHeader title="Palinsesto Allenamenti" subtitle="Riepilogo per Giorno" />
+        {DAYS_OF_WEEK.map((dayName, index) => {
+            const dayKey = index + 1;
+            const daySessions = sessions.filter(s => s.day === dayKey);
+            if (daySessions.length === 0) return null;
 
-    
+            return (
+                <div key={dayKey} className="mb-8 page-break-inside-avoid">
+                    <h2 className="text-2xl font-semibold mb-3 border-b-2 pb-2 border-primary">{dayName}</h2>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[15%]">Orario</TableHead>
+                                <TableHead>Squadra</TableHead>
+                                <TableHead>Palestra</TableHead>
+                                <TableHead>Coach</TableHead>
+                                <TableHead className="text-right w-[10%]">Durata</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {daySessions.map(session => {
+                                const gym = gyms.find(g => g.id === session.gymId);
+                                const team = teams.find(t => t.id === session.teamId);
+                                const sessionCoaches = coaches.filter(c => (session.coachIds || []).includes(c.id));
+                                return (
+                                    <TableRow key={session.id}>
+                                        <TableCell>{formatTime(session.startTime)} - {formatTime(session.startTime ? session.startTime + session.duration : null)}</TableCell>
+                                        <TableCell className="font-medium">{team?.name || 'N/A'}</TableCell>
+                                        <TableCell>{gym?.name || 'N/A'}</TableCell>
+                                        <TableCell>{sessionCoaches.map(c => c.name).join(', ') || 'N/D'}</TableCell>
+                                        <TableCell className="text-right">{session.duration} min</TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+            );
+        })}
+    </div>
+);
+
+const CoachPrintView = ({ coaches, sessions, gyms, teams }: { coaches: Coach[], sessions: Session[], gyms: Gym[], teams: Team[] }) => (
+    <div>
+        <PrintHeader title="Palinsesto Allenamenti" subtitle="Riepilogo per Coach" />
+        {coaches.map(coach => {
+            const coachSessions = sessions.filter(s => (s.coachIds || []).includes(coach.id));
+            if (coachSessions.length === 0) return null;
+
+            return (
+                <div key={coach.id} className="mb-8 page-break-inside-avoid">
+                    <h2 className="text-2xl font-semibold mb-3 border-b-2 pb-2 border-primary">{coach.name}</h2>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[15%]">Giorno</TableHead>
+                                <TableHead className="w-[15%]">Orario</TableHead>
+                                <TableHead>Squadra</TableHead>
+                                <TableHead>Palestra</TableHead>
+                                <TableHead className="text-right w-[10%]">Durata</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {coachSessions.map(session => {
+                                const gym = gyms.find(g => g.id === session.gymId);
+                                const team = teams.find(t => t.id === session.teamId);
+                                return (
+                                    <TableRow key={session.id}>
+                                        <TableCell className="font-medium">{session.day ? DAYS_OF_WEEK[session.day - 1] : 'N/A'}</TableCell>
+                                        <TableCell>{formatTime(session.startTime)} - {formatTime(session.startTime ? session.startTime + session.duration : null)}</TableCell>
+                                        <TableCell>{team?.name || 'N/A'}</TableCell>
+                                        <TableCell>{gym?.name || 'N/A'}</TableCell>
+                                        <TableCell className="text-right">{session.duration} min</TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+            );
+        })}
+    </div>
+);

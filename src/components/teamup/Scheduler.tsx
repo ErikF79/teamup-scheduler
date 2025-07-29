@@ -590,7 +590,7 @@ const UnassignedSessionsColumn = () => {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
     >
-      <CardHeader className="border-b">
+      <CardHeader className="border-b flex-shrink-0">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
           <Users className="h-5 w-5 text-primary" />
           Sessioni da Assegnare
@@ -599,7 +599,7 @@ const UnassignedSessionsColumn = () => {
           </span>
         </CardTitle>
       </CardHeader>
-      <ScrollArea className="flex-grow">
+      <ScrollArea>
         <CardContent className="p-4 space-y-3">
           {unassignedSessions.length > 0 ? (
               unassignedSessions.map(session => <div key={session.id} className="h-20"><SessionCard session={session} /></div>)
@@ -628,7 +628,7 @@ const UnassignedCoachesColumn = () => {
 
     return (
         <Card className="w-full lg:w-72 flex flex-col shrink-0 max-h-64 lg:max-h-none">
-            <CardHeader className="border-b">
+            <CardHeader className="border-b flex-shrink-0">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                     <UserCheck className="h-5 w-5 text-primary" />
                     Coach da Assegnare
@@ -637,7 +637,7 @@ const UnassignedCoachesColumn = () => {
                     </span>
                 </CardTitle>
             </CardHeader>
-            <ScrollArea className="flex-grow">
+            <ScrollArea>
                 <CardContent className="p-4 space-y-3">
                     {unassignedCoaches.length > 0 ? (
                         unassignedCoaches.map(coach => <CoachCard key={coach.id} coach={coach} />)
@@ -1001,5 +1001,3 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
         </Dialog>
     )
 }
-
-    

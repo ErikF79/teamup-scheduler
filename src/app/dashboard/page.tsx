@@ -126,6 +126,11 @@ export default function DashboardPage() {
         ];
 
         const usagePercentage = totalHoursAvailablePerWeek > 0 ? (totalHoursRequiredPerWeek / totalHoursAvailablePerWeek) * 100 : 0;
+        
+        const teamChartData = teamDetails.map(t => ({ name: t.name, 'Ore Settimanali': t.weeklyHours }));
+        const gymChartData = gymDetails.map(g => ({ name: g.name, 'Ore Disponibili': g.weeklyHours }));
+        const coachChartData = coachDetails.map(c => ({ name: c.name, 'Ore Settimanali': c.weeklyHours }));
+
 
         return {
             numGyms,
@@ -141,7 +146,10 @@ export default function DashboardPage() {
             coachDetails,
             weeklyChartData,
             seasonalChartData,
-            usagePercentage
+            usagePercentage,
+            teamChartData,
+            gymChartData,
+            coachChartData,
         };
     }, [data]);
 
@@ -368,11 +376,62 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
+                
+                 {/* Detailed Charts */}
+                <div className="mt-8">
+                    <Card>
+                         <CardHeader>
+                            <CardTitle>Riepilogo Grafico Dettagliato</CardTitle>
+                            <CardDescription>Visualizzazione del carico di lavoro settimanale e della disponibilità.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid gap-8 md:grid-cols-1 lg:grid-cols-3">
+                             <div className="flex flex-col">
+                                <h4 className="font-semibold text-center mb-4">Carico Squadre (Ore/Sett.)</h4>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={stats.teamChartData} margin={{ top: 5, right: 20, left: -10, bottom: 75 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} height={1}/>
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Bar dataKey="Ore Settimanali" fill="#800000" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="flex flex-col">
+                                <h4 className="font-semibold text-center mb-4">Disponibilità Palestre (Ore/Sett.)</h4>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={stats.gymChartData} margin={{ top: 5, right: 20, left: -10, bottom: 75 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} height={1}/>
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Bar dataKey="Ore Disponibili" fill="#000080" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                             <div className="flex flex-col">
+                                <h4 className="font-semibold text-center mb-4">Carico Coach (Ore/Sett.)</h4>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={stats.coachChartData} margin={{ top: 5, right: 20, left: -10, bottom: 75 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} height={1}/>
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Bar dataKey="Ore Settimanali" fill="#800000" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
 
             </main>
         </div>
     );
 }
+
+    
 
     
 

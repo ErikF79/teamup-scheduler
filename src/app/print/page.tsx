@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { initialData as mockData, Gym, Team, Session, Config, AppData, Coach } from '@/lib/teamup';
@@ -15,19 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const DAYS_OF_WEEK = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
-const PLANNER_START_HOUR = 15;
-const PLANNER_END_HOUR = 23;
-
-const TIME_SLOTS_PLANNER = Array.from({ length: (PLANNER_END_HOUR - PLANNER_START_HOUR) * 4 + 1 }, (_, i) => {
-    const totalMinutes = (PLANNER_START_HOUR * 60) + (i * 15);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return {
-        totalMinutes,
-        label: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
-    };
-});
-
 
 function formatTime(minutesFromDayStart: number | null) {
     if (minutesFromDayStart === null) return 'N/A';
@@ -381,33 +368,89 @@ const PlannerPrintView = ({ item, type, sessions, data }: { item: any, type: 'gy
     let title = item.name;
     let columns: { id: string, name: string }[] = [];
     let getColumnSessions: (columnId: string) => Session[];
+    
+    let allItemSessions: Session[] = [];
 
     switch (type) {
         case 'gym':
-        case 'team':
-        case 'coach':
             columns = DAYS_OF_WEEK.map((d, i) => ({ id: String(i + 1), name: d }));
+            allItemSessions = sessions.filter(s => s.gymId === item.id);
             getColumnSessions = (columnId) => {
                 const dayKey = parseInt(columnId);
-                if(type === 'gym') return sessions.filter(s => s.gymId === item.id && s.day === dayKey);
-                if(type === 'team') return sessions.filter(s => s.teamId === item.id && s.day === dayKey);
-                if(type === 'coach') return sessions.filter(s => (s.coachIds || []).includes(item.id) && s.day === dayKey);
-                return [];
+                return allItemSessions.filter(s => s.day === dayKey);
+            };
+            break;
+        case 'team':
+             columns = DAYS_OF_WEEK.map((d, i) => ({ id: String(i + 1), name: d }));
+             allItemSessions = sessions.filter(s => s.teamId === item.id);
+             getColumnSessions = (columnId) => {
+                const dayKey = parseInt(columnId);
+                return allItemSessions.filter(s => s.day === dayKey);
+            };
+            break;
+        case 'coach':
+            columns = DAYS_OF_WEEK.map((d, i) => ({ id: String(i + 1), name: d }));
+            allItemSessions = sessions.filter(s => (s.coachIds || []).includes(item.id));
+             getColumnSessions = (columnId) => {
+                const dayKey = parseInt(columnId);
+                return allItemSessions.filter(s => s.day === dayKey);
             };
             break;
         case 'day':
              columns = gyms;
              title = `Planner per ${item.name}`;
+             const dayKey = parseInt(item.id);
+             allItemSessions = sessions.filter(s => s.day === dayKey);
              getColumnSessions = (columnId) => {
-                 const dayKey = parseInt(item.id);
-                 return sessions.filter(s => s.gymId === columnId && s.day === dayKey);
+                 return allItemSessions.filter(s => s.gymId === columnId);
              }
             break;
     }
 
-    // Determine the overall time range for the planner view
-    const minTime = PLANNER_START_HOUR * 60;
-    const timeIntervals = TIME_SLOTS_PLANNER.map(slot => slot.totalMinutes);
+    const { timeSlots, totalDuration, minTime } = useMemo(() => {
+        if (allItemSessions.length === 0) {
+            return { timeSlots: [], totalDuration: 0, minTime: 15 * 60 };
+        }
+
+        const placedSessions = allItemSessions.filter(s => s.startTime !== null);
+        if (placedSessions.length === 0) {
+             return { timeSlots: [], totalDuration: 0, minTime: 15 * 60 };
+        }
+
+        let minT = Math.min(...placedSessions.map(s => s.startTime!));
+        let maxT = Math.max(...placedSessions.map(s => s.startTime! + s.duration));
+        
+        // Add some padding
+        minT = Math.floor((minT - 30) / 30) * 30; // Round down to nearest 30 mins
+        maxT = Math.ceil((maxT + 30) / 30) * 30; // Round up to nearest 30 mins
+        
+        const slots = [];
+        for (let t = minT; t <= maxT; t += 15) {
+            const hours = Math.floor(t / 60);
+            const minutes = t % 60;
+            slots.push({
+                totalMinutes: t,
+                label: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+            });
+        }
+        
+        return {
+            timeSlots: slots,
+            totalDuration: maxT - minT,
+            minTime: minT
+        };
+    }, [allItemSessions]);
+
+    if (allItemSessions.filter(s => s.startTime !== null).length === 0) {
+         return (
+             <div className="mb-8 page-break-inside-avoid">
+                <h2 className="text-2xl font-semibold mb-4 text-center">{title}</h2>
+                <p className="text-muted-foreground text-center py-4">Nessun allenamento programmato per questa vista.</p>
+            </div>
+        );
+    }
+
+    const gridHeight = timeSlots.length * 12; // 12px per 15min slot
 
     return (
         <div className="mb-8 page-break-inside-avoid">
@@ -415,27 +458,28 @@ const PlannerPrintView = ({ item, type, sessions, data }: { item: any, type: 'gy
             <div className="flex border-t border-l border-gray-300">
                 <div className="w-20 flex-shrink-0 border-r border-gray-300 bg-gray-50">
                     <div className="h-10 border-b border-gray-300"></div>
-                     {TIME_SLOTS_PLANNER.map((slot, index) => (
-                        index % 4 === 0 ? (
-                             <div key={slot.label} className="h-12 border-b border-gray-200 text-center text-xs pt-1 font-semibold">{slot.label}</div>
-                        ) : null
+                     {timeSlots.map((slot, index) => (
+                        index % 2 === 0 ? ( // Show label every 30 mins
+                             <div key={slot.label} className="h-6 text-center text-xs pt-1 font-semibold flex items-center justify-center" style={{ height: '6px' }}>
+                                 {slot.totalMinutes % 60 === 0 && <span className='-translate-y-1/2'>{slot.label}</span>}
+                             </div>
+                        ) : <div key={slot.label} style={{ height: '6px' }} />
                     ))}
                 </div>
                 <div className="flex-grow grid" style={{ gridTemplateColumns: `repeat(${columns.length}, 1fr)` }}>
                     {columns.map(col => (
                         <div key={col.id} className="relative border-r border-gray-300">
                             <div className="h-10 border-b border-gray-300 bg-gray-50 flex items-center justify-center text-center font-semibold text-sm p-1">{col.name}</div>
-                            <div className="relative" style={{ height: `${(timeIntervals.length - 1) * 3}px` }}>
+                            <div className="relative" style={{ height: `${gridHeight}px` }}>
                                 {/* Background grid lines */}
-                                {timeIntervals.map((time, index) => (
-                                    <div key={time} className={`absolute w-full ${index % 4 === 0 ? 'border-t border-gray-200' : 'border-t border-gray-100'}`} style={{ top: `${index * 3}px`}}></div>
+                                {timeSlots.map((time, index) => (
+                                    <div key={time.totalMinutes} className={`absolute w-full ${time.totalMinutes % 60 === 0 ? 'border-t border-gray-200' : 'border-t border-gray-100'}`} style={{ top: `${(index / timeSlots.length) * 100}%`}}></div>
                                 ))}
 
                                 {getColumnSessions(col.id).map(session => {
                                     if (session.startTime === null || session.duration <= 0) return null;
-                                    const topOffset = (session.startTime - minTime) / 15; // Number of 15-min intervals from start time
-                                    const top = topOffset * 3; // 3px per 15min interval
-                                    const height = (session.duration / 15) * 3;
+                                    const topPercent = ((session.startTime - minTime) / totalDuration) * 100;
+                                    const heightPercent = (session.duration / totalDuration) * 100;
                                     
                                     const team = teams.find(t => t.id === session.teamId);
                                     const sessionCoaches = (coaches || []).filter(c => (session.coachIds || []).includes(c.id));
@@ -444,14 +488,13 @@ const PlannerPrintView = ({ item, type, sessions, data }: { item: any, type: 'gy
                                     const color = teamColors[session.teamId] || '#ccc';
                                     const darkColor = `color-mix(in srgb, ${color} 80%, black)`;
 
-
                                     return (
-                                        <div key={session.id} className="absolute w-full px-0.5" style={{ top: `${top}px`, height: `${height}px` }}>
+                                        <div key={session.id} className="absolute w-full px-0.5" style={{ top: `${topPercent}%`, height: `${heightPercent}%` }}>
                                             <div className="h-full rounded-sm border-l-4 p-1 text-white text-[10px] flex flex-col justify-start overflow-hidden leading-tight" style={{ backgroundColor: color, borderLeftColor: darkColor}}>
-                                                 <p className="font-bold truncate">{team?.name || 'N/D'}</p>
-                                                 {type !== 'gym' && <p className="truncate opacity-90">{gym?.name || 'N/D'}</p>}
-                                                 <p className="truncate opacity-90">{sessionCoaches.map(c => c.name).join(', ') || 'N/D'}</p>
-                                                 <p className="mt-auto opacity-90">{session.duration} min</p>
+                                                 <p className="font-bold text-xs truncate">{team?.name || 'N/D'}</p>
+                                                 {type !== 'gym' && <p className="truncate opacity-90 text-[10px]">{gym?.name || 'N/D'}</p>}
+                                                 <p className="truncate opacity-90 text-[10px]">{sessionCoaches.map(c => c.name).join(', ') || 'N/D'}</p>
+                                                 <p className="mt-auto opacity-90 text-[10px]">{session.duration} min</p>
                                             </div>
                                         </div>
                                     )

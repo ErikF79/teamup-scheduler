@@ -585,7 +585,7 @@ const UnassignedSessionsColumn = () => {
 
   return (
     <Card 
-        className={`w-full lg:w-72 flex flex-col transition-colors shrink-0 ${isOver ? 'bg-accent/10' : ''}`}
+        className={`w-full lg:w-72 flex flex-col transition-colors shrink-0 max-h-64 lg:max-h-none ${isOver ? 'bg-accent/10' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -599,7 +599,7 @@ const UnassignedSessionsColumn = () => {
           </span>
         </CardTitle>
       </CardHeader>
-      <ScrollArea className="h-48 lg:h-auto">
+      <ScrollArea className="flex-grow">
         <CardContent className="p-4 space-y-3">
           {unassignedSessions.length > 0 ? (
               unassignedSessions.map(session => <div key={session.id} className="h-20"><SessionCard session={session} /></div>)
@@ -627,7 +627,7 @@ const UnassignedCoachesColumn = () => {
     if (coaches.length === 0) return null;
 
     return (
-        <Card className="w-full lg:w-72 flex flex-col shrink-0">
+        <Card className="w-full lg:w-72 flex flex-col shrink-0 max-h-64 lg:max-h-none">
             <CardHeader className="border-b">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                     <UserCheck className="h-5 w-5 text-primary" />
@@ -637,7 +637,7 @@ const UnassignedCoachesColumn = () => {
                     </span>
                 </CardTitle>
             </CardHeader>
-            <ScrollArea className="h-48 lg:h-auto">
+            <ScrollArea className="flex-grow">
                 <CardContent className="p-4 space-y-3">
                     {unassignedCoaches.length > 0 ? (
                         unassignedCoaches.map(coach => <CoachCard key={coach.id} coach={coach} />)
@@ -790,13 +790,6 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
         >
-             {/* Grid lines */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
-                 {allIntervals.map((_, i) => (
-                    <div key={i} className={`h-6 border-t ${i % 4 === 0 ? 'border-border' : 'border-border/50'}`}/>
-                ))}
-            </div>
-
              {/* Background for available times */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 {slots.map((slot, index) => {
@@ -805,8 +798,8 @@ const DayGymScheduleCell = ({ gym, dayKey }: DayGymScheduleCellProps) => {
                     return (
                         <div 
                             key={`available-${index}`} 
-                            className="absolute w-full" 
-                            style={{ top: `${top}%`, height: `${height}%`, background: 'hsl(130, 70%, 95%)' }}
+                            className="absolute w-full bg-green-50" 
+                            style={{ top: `${top}%`, height: `${height}%` }}
                         />
                     );
                 })}
@@ -1008,3 +1001,5 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
         </Dialog>
     )
 }
+
+    

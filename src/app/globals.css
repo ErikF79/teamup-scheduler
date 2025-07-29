@@ -110,7 +110,13 @@ body {
     visibility: visible;
   }
   @page {
-    size: A4 landscape;
-    margin: 1cm;
+    size: A4 portrait;
+    margin: 1.5cm;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
   }
 }
+
+    

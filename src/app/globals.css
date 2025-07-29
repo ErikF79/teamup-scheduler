@@ -109,9 +109,19 @@ body {
    main, .print-container > * {
     visibility: visible;
   }
-  @page {
-    size: A4 portrait;
-    margin: 1.5cm;
+
+  .print-table {
+    @page {
+      size: A4 portrait;
+      margin: 1.5cm;
+    }
+  }
+
+  .print-planner {
+     @page {
+      size: A4 landscape;
+      margin: 1cm;
+    }
   }
 
   .page-break-inside-avoid {

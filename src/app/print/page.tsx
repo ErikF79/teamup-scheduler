@@ -425,7 +425,7 @@ const PlannerPrintView = ({ item, type, sessions, data }: { item: any, type: 'gy
                     {columns.map(col => (
                         <div key={col.id} className="relative border-r border-gray-300">
                             <div className="h-10 border-b border-gray-300 bg-gray-50 flex items-center justify-center text-center font-semibold text-sm p-1">{col.name}</div>
-                            <div className="relative" style={{ height: `${(timeIntervals.length-1) * 3}px` }}>
+                            <div className="relative" style={{ height: `${(timeIntervals.length - 1) * 3}px` }}>
                                 {/* Background grid lines */}
                                 {timeIntervals.map((time, index) => (
                                     <div key={time} className={`absolute w-full ${index % 4 === 0 ? 'border-t border-gray-200' : 'border-t border-gray-100'}`} style={{ top: `${index * 3}px`}}></div>
@@ -447,11 +447,11 @@ const PlannerPrintView = ({ item, type, sessions, data }: { item: any, type: 'gy
 
                                     return (
                                         <div key={session.id} className="absolute w-full px-0.5" style={{ top: `${top}px`, height: `${height}px` }}>
-                                            <div className="h-full rounded-sm border-l-4 p-1 text-white text-[9px] flex flex-col justify-start overflow-hidden" style={{ backgroundColor: color, borderLeftColor: darkColor}}>
+                                            <div className="h-full rounded-sm border-l-4 p-1 text-white text-[10px] flex flex-col justify-start overflow-hidden leading-tight" style={{ backgroundColor: color, borderLeftColor: darkColor}}>
                                                  <p className="font-bold truncate">{team?.name || 'N/D'}</p>
-                                                 {type !== 'gym' && <p className="truncate text-xs opacity-90">{gym?.name || 'N/D'}</p>}
-                                                 <p className="truncate text-xs opacity-90">{sessionCoaches.map(c => c.name).join(', ') || 'N/D'}</p>
-                                                 <p className="mt-auto text-xs opacity-90">{session.duration} min</p>
+                                                 {type !== 'gym' && <p className="truncate opacity-90">{gym?.name || 'N/D'}</p>}
+                                                 <p className="truncate opacity-90">{sessionCoaches.map(c => c.name).join(', ') || 'N/D'}</p>
+                                                 <p className="mt-auto opacity-90">{session.duration} min</p>
                                             </div>
                                         </div>
                                     )

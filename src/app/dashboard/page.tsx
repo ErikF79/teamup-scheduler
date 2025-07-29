@@ -179,64 +179,64 @@ export default function DashboardPage() {
             <main className="p-4 md:p-8">
                 {/* General Stats */}
                 <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-8">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <Card className="text-center">
+                        <CardHeader className="flex flex-col items-center pb-2">
+                            <Building2 className="h-6 w-6 text-muted-foreground mb-2" />
                             <CardTitle className="text-sm font-medium">Palestre</CardTitle>
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.numGyms}</div>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <Card className="text-center">
+                        <CardHeader className="flex flex-col items-center pb-2">
+                            <Users className="h-6 w-6 text-muted-foreground mb-2" />
                             <CardTitle className="text-sm font-medium">Squadre</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.numTeams}</div>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <Card className="text-center">
+                        <CardHeader className="flex flex-col items-center pb-2">
+                            <UserCheck className="h-6 w-6 text-muted-foreground mb-2" />
                             <CardTitle className="text-sm font-medium">Coach</CardTitle>
-                            <UserCheck className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.numCoaches}</div>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <Card className="text-center">
+                        <CardHeader className="flex flex-col items-center pb-2">
+                            <Calendar className="h-6 w-6 text-muted-foreground mb-2" />
                             <CardTitle className="text-sm font-medium">Allenamenti Sett.</CardTitle>
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.numSessions}</div>
                         </CardContent>
                     </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                     <Card className="text-center">
+                        <CardHeader className="flex flex-col items-center pb-2">
+                             <Hourglass className="h-6 w-6 text-destructive mb-2" />
                             <CardTitle className="text-sm font-medium">Ore Richieste / Sett.</CardTitle>
-                            <Hourglass className="h-4 w-4 text-destructive" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.totalHoursRequiredPerWeek.toFixed(2)} h</div>
                         </CardContent>
                     </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                     <Card className="text-center">
+                        <CardHeader className="flex flex-col items-center pb-2">
+                           <Hourglass className="h-6 w-6 text-primary mb-2" />
                             <CardTitle className="text-sm font-medium">Ore Disponibili / Sett.</CardTitle>
-                            <Hourglass className="h-4 w-4 text-primary" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.totalHoursAvailablePerWeek.toFixed(2)} h</div>
                         </CardContent>
                     </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                     <Card className="text-center">
+                        <CardHeader className="flex flex-col items-center pb-2">
+                            <Percent className="h-6 w-6 text-muted-foreground mb-2" />
                             <CardTitle className="text-sm font-medium">Utilizzo Risorse</CardTitle>
-                             <Percent className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold mb-2">{stats.usagePercentage.toFixed(1)}%</div>
@@ -373,5 +373,7 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
 
     

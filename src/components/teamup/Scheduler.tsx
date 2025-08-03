@@ -363,14 +363,11 @@ function GymViewScheduler() {
     return (
         <Tabs defaultValue={gyms[0].id} className="flex-grow flex flex-col h-full overflow-hidden">
              <div className="flex-shrink-0 pb-4">
-                <ScrollArea>
-                    <TabsList>
-                        {gyms.map(gym => (
-                            <TabsTrigger key={gym.id} value={gym.id}>{gym.name}</TabsTrigger>
-                        ))}
-                    </TabsList>
-                    <ScrollBar orientation="horizontal" />
-                </ScrollArea>
+                <TabsList className="h-auto flex-wrap justify-start">
+                    {gyms.map(gym => (
+                        <TabsTrigger key={gym.id} value={gym.id} className="my-1 mx-1">{gym.name}</TabsTrigger>
+                    ))}
+                </TabsList>
              </div>
             <ScrollArea className="flex-grow h-full" viewportRef={viewportRef}>
                  {gyms.map(gym => (
@@ -1028,11 +1025,13 @@ function PlaceSessionDialog({ info }: PlaceSessionDialogProps) {
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={handleClose}>Annulla</Button>
-                    <Button variant="default" onClick={handleSave}>Salva e Posiziona</Button>
+                    <Button onClick={handleSave}>Salva e Posiziona</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     )
 }
+
+    
 
     

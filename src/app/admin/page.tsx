@@ -239,11 +239,21 @@ export default function AdminPage() {
 
     // --- Import/Export Handlers ---
     const handleExport = () => {
-        if (!userData) return;
+        if (!userData || !activeUser) return;
+        
+        const defaultFileName = `teamup_config_${activeUser}_${new Date().toISOString().split('T')[0]}.json`;
+        const fileName = prompt("Inserisci il nome per il file di esportazione:", defaultFileName);
+
+        if (fileName === null) { // User clicked cancel
+            return;
+        }
+        
+        const finalFileName = fileName.trim() ? (fileName.endsWith('.json') ? fileName : `${fileName}.json`) : defaultFileName;
+
         const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(userData, null, 2))}`;
         const link = document.createElement("a");
         link.href = jsonString;
-        link.download = `teamup_config_${activeUser}.json`;
+        link.download = finalFileName;
         link.click();
     };
 
@@ -471,7 +481,7 @@ export default function AdminPage() {
                                         )
                                     )}
                                 </div>
-                                <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddGym}>
+                                <Button className="mt-2 w-full" onClick={handleAddGym}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Palestra
                                 </Button>
                             </CardContent>
@@ -520,7 +530,7 @@ export default function AdminPage() {
                                         )
                                     )}
                                 </div>
-                                <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddTeam}>
+                                <Button className="mt-2 w-full" onClick={handleAddTeam}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Squadra
                                 </Button>
                             </CardContent>
@@ -563,7 +573,7 @@ export default function AdminPage() {
                                         )
                                     )}
                                 </div>
-                                <Button className="mt-2 w-full bg-accent hover:bg-accent/90" onClick={handleAddCoach}>
+                                <Button className="mt-2 w-full" onClick={handleAddCoach}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Coach
                                 </Button>
                             </CardContent>
@@ -699,7 +709,7 @@ function GymEditForm({ gym, onSave, onCancel }: GymEditFormProps) {
                 </Tooltip>
                  <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={handleSave} className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
+                        <Button variant="outline" size="icon" onClick={handleSave} className="border-primary text-primary hover:bg-primary/10">
                             <Check className="h-5 w-5"/>
                         </Button>
                     </TooltipTrigger>
@@ -810,7 +820,7 @@ function TeamEditForm({ team, sessions, onSave, onCancel }: TeamEditFormProps) {
                 </Tooltip>
                  <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={handleSave} className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
+                        <Button variant="outline" size="icon" onClick={handleSave} className="border-primary text-primary hover:bg-primary/10">
                            <Check className="h-5 w-5"/>
                         </Button>
                     </TooltipTrigger>
@@ -840,12 +850,14 @@ function CoachEditForm({ coach, onSave, onCancel }: CoachEditFormProps) {
             </div>
             <div className="flex justify-end gap-2 mt-4">
                  <Button variant="ghost" size="icon" onClick={onCancel}><X className="h-5 w-5"/></Button>
-                 <Button variant="outline" size="icon" onClick={() => onSave({...coach, name})} className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
+                 <Button variant="outline" size="icon" onClick={() => onSave({...coach, name})} className="border-primary text-primary hover:bg-primary/10">
                     <Check className="h-5 w-5"/>
                  </Button>
             </div>
         </div>
     )
 }
+
+    
 
     

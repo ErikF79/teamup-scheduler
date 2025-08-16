@@ -221,7 +221,7 @@ export default function PrintPage() {
                         </Tabs>
 
                          <div className="pt-6 border-t mt-6">
-                            <Button onClick={() => window.print()} variant="outline" className="border-red-800 text-blue-800 hover:bg-red-50 hover:text-blue-900">
+                            <Button onClick={() => window.print()}>
                                 <Printer className="mr-2 h-4 w-4" />Stampa / Salva PDF
                             </Button>
                         </div>
@@ -260,7 +260,7 @@ const TablePrintView = ({ items, type, sessions, data }: { items: any[], type: '
     
     return (
         <div>
-            <PrintHeader title="Palinsesto Allenamenti" subtitle={getSubtitle()} />
+            <PrintHeader title="Programma Allenamenti" subtitle={getSubtitle()} />
             {items.map(item => {
                 let itemSessions: Session[] = [];
                 let headers: string[] = [];
@@ -408,10 +408,6 @@ const PlannerPrintView = ({ item, type, sessions, data }: { item: any, type: 'gy
     }
 
     const { timeSlots, totalDuration, minTime } = useMemo(() => {
-        if (allItemSessions.length === 0) {
-            return { timeSlots: [], totalDuration: 0, minTime: 15 * 60 };
-        }
-
         const placedSessions = allItemSessions.filter(s => s.startTime !== null);
         if (placedSessions.length === 0) {
              return { timeSlots: [], totalDuration: 0, minTime: 15 * 60 };
@@ -425,7 +421,7 @@ const PlannerPrintView = ({ item, type, sessions, data }: { item: any, type: 'gy
         maxT = Math.ceil((maxT + 30) / 30) * 30; // Round up to nearest 30 mins
         
         const slots = [];
-        for (let t = minT; t <= maxT; t += 15) {
+        for (let t = minT; t < maxT; t += 15) { // Use < maxT instead of <=
             const hours = Math.floor(t / 60);
             const minutes = t % 60;
             slots.push({
@@ -507,5 +503,3 @@ const PlannerPrintView = ({ item, type, sessions, data }: { item: any, type: 'gy
         </div>
     );
 };
-
-    

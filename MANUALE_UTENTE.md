@@ -13,11 +13,11 @@ L'applicazione è interamente **locale**: tutti i dati che inserisci vengono sal
 
 L'applicativo è suddiviso in 5 aree principali, accessibili tramite il menu di navigazione:
 
-1.  **Pagina di Login/Registrazione**: Il punto di accesso all'applicazione.
-2.  **Admin Panel**: Il "motore" dell'applicazione, dove si definiscono tutte le risorse (palestre, squadre, coach).
-3.  **Scheduler**: Lo strumento di pianificazione visuale dove si assegnano gli allenamenti.
-4.  **Dashboard**: Una vista riassuntiva con statistiche e grafici sull'utilizzo delle risorse.
-5.  **Pagina di Stampa**: Per generare report tabellari o planner grafici da stampare o salvare in PDF.
+1.  **Pagina di Login/Registrazione**: Il punto di accesso all'applicazione per gestire profili separati.
+2.  **Admin Panel**: Il "motore" dell'applicazione, dove si definiscono tutte le risorse (palestre, squadre, coach) e si gestiscono i backup.
+3.  **Scheduler**: Lo strumento di pianificazione visuale drag-and-drop dove si assegnano gli allenamenti.
+4.  **Dashboard**: Una vista riassuntiva con statistiche avanzate e grafici sul carico di lavoro.
+5.  **Pagina di Stampa**: Per generare report professionali (tabellari o grafici) da salvare in PDF o stampare.
 
 ---
 
@@ -25,75 +25,68 @@ L'applicativo è suddiviso in 5 aree principali, accessibili tramite il menu di 
 
 ### 3.1. Primo Accesso: Registrazione e Login
 
-Poiché i dati sono salvati localmente nel browser, è necessario un sistema per gestirli separatamente se più persone usano lo stesso computer o se vuoi avere più profili.
+Poiché i dati sono salvati localmente nel browser, è necessario un sistema per gestirli separatamente se più persone usano lo stesso computer.
 
 1.  **Registrazione**: Al primo accesso, vai nella scheda "Registrati". Scegli un nome utente e una password.
-    *   **Attenzione**: La sicurezza è minima. Questo sistema serve solo a separare i dati. Non usare password importanti.
-2.  **Login**: Una volta registrato, usa le tue credenziali per accedere. L'applicazione caricherà automaticamente la tua ultima configurazione.
+    *   **Nota sulla sicurezza**: Questo sistema serve solo a separare i dati locali. Non usare password sensibili.
+2.  **Login**: Una volta registrato, usa le tue credenziali per accedere. L'applicazione caricherà automaticamente il tuo profilo e le tue configurazioni.
 
 ### 3.2. Configurazione Iniziale: L'Admin Panel
 
-L'Admin Panel è il primo posto dove andare dopo la registrazione. Qui si definisce tutto ciò che serve per la pianificazione.
+L'Admin Panel è dove si definisce la base di dati per la pianificazione.
 
 #### Gestione Configurazioni
-Puoi avere più "scenari" o configurazioni salvate (es. "Stagione 2024/25", "Camp Estivo", "Ipotesi B").
-- **Configurazione Attiva**: Il menu a tendina mostra quale configurazione stai modificando.
-- **Salva come...**: Duplica la configurazione attuale con un nuovo nome. Utile per creare versioni diverse senza perdere l'originale.
-- **Rinomina**: Cambia il nome della configurazione attiva.
-- **Elimina**: Cancella la configurazione attiva (non puoi cancellare l'unica esistente).
+Puoi avere più "scenari" salvati (es. "Stagione Invernale", "Torneo Estivo").
+- **Configurazione Attiva**: Il menu a tendina permette di passare da uno scenario all'altro.
+- **Salva come...**: Duplica lo scenario attuale con un nuovo nome.
+- **Rinomina/Elimina**: Per gestire i nomi degli scenari o rimuovere quelli obsoleti.
 
-#### Gestione Palestre
-- **Aggiungi Palestra**: Crea una nuova palestra.
-- **Modifica**: Cliccando l'icona a matita, puoi cambiarne il nome e, soprattutto, definire gli **orari di disponibilità**. Per ogni giorno della settimana, puoi aggiungere una o più fasce orarie in cui la palestra è utilizzabile. Una palestra senza slot in un giorno risulterà chiusa.
+#### Gestione Risorse
+- **Palestre**: Aggiungi strutture e definisci i loro **orari di disponibilità** per ogni giorno della settimana.
+- **Squadre**: Definisci i nomi dei team, le date della stagione e le **sessioni di allenamento richieste** (numero e durata in minuti).
+- **Coach**: Aggiungi i nomi degli allenatori disponibili.
 
-#### Gestione Squadre
-- **Aggiungi Squadra**: Crea una nuova squadra, definendo nome e date di inizio/fine stagione.
-- **Modifica**: Cliccando l'icona a matita, puoi:
-    - Cambiare il nome e le date.
-    - Definire le **sessioni di allenamento** necessarie. Per ogni squadra, puoi aggiungere una o più sessioni, specificando la **durata** richiesta (es. 2 allenamenti da 90 minuti, 1 da 75). Queste sessioni appariranno poi nello Scheduler come "da assegnare".
-
-#### Gestione Coach
-- **Aggiungi Coach**: Aggiunge un allenatore all'elenco dei disponibili.
-- **Modifica/Elimina**: Puoi rinominare o rimuovere un coach. Se un coach viene eliminato, sarà rimosso da tutte le sessioni a cui era stato assegnato.
-
-#### Import/Export
-- **Esporta**: Salva **tutte** le tue configurazioni in un singolo file `.json`. Ti verrà chiesto di dare un nome al file. È fondamentale per creare backup e per non perdere il tuo lavoro.
-- **Importa**: Carica un file `.json` esportato in precedenza per ripristinare le tue configurazioni.
+#### Backup e Ripristino (Import/Export)
+- **Esporta**: Salva **tutte le configurazioni** del tuo profilo in un singolo file `.json`. Ti verrà chiesto di dare un nome al file. È fondamentale per creare backup periodici o trasferire i dati su un altro computer.
+- **Importa**: Carica un file `.json` precedentemente esportato per ripristinare interamente il tuo database di lavoro.
 
 ### 3.3. Pianificazione Visuale: Lo Scheduler
 
-Lo Scheduler è il cuore operativo dell'app.
+Lo Scheduler permette di posizionare gli allenamenti sulla griglia temporale.
 
 #### L'Interfaccia
-- **Colonne a Sinistra**:
-    - **Sessioni da Assegnare**: Contiene tutti gli allenamenti che hai definito nell'Admin Panel ma che non hanno ancora un orario e una palestra.
-    - **Coach da Assegnare**: Contiene gli allenatori che non sono stati assegnati a nessuna sessione specifica.
-- **Griglia Principale**: La vista del calendario. Puoi visualizzarla in due modi:
-    - **Vista per Palestra**: Ogni scheda mostra una palestra, con i giorni della settimana come colonne.
-    - **Vista per Giorno**: Ogni scheda mostra un giorno della settimana, con le palestre come colonne.
+- **Colonne a Sinistra**: Contengono le "Sessioni da Assegnare" (quelle definite per le squadre) e i "Coach da Assegnare" (quelli non ancora impegnati).
+- **Griglia Centrale**: Mostra il calendario. Puoi scegliere tra **Vista per Palestra** (una scheda per ogni struttura) o **Vista per Giorno** (una scheda per ogni giorno della settimana).
 
 #### Come Pianificare
-1.  **Piazzare un Allenamento**: Trascina ("drag and drop") una sessione dalla colonna "Sessioni da Assegnare" e rilasciala in uno slot orario vuoto nella griglia principale (in corrispondenza di una palestra e un giorno).
-2.  **Impostare l'Orario**: Dopo il rilascio, apparirà un pop-up che ti chiederà di specificare l'orario di inizio preciso. Una volta confermato, la sessione apparirà nella griglia.
-3.  **Assegnare un Coach**: Trascina un allenatore dalla colonna "Coach da Assegnare" e rilascialo direttamente su una sessione già pianificata nella griglia.
-4.  **Modificare una Sessione**: Clicca su una sessione già pianificata. Apparirà un pop-up per modificare l'orario di inizio o per assegnare/cambiare i coach tramite un comodo menu a selezione multipla.
-5.  **Spostare una Sessione**: Puoi trascinare una sessione già pianificata da uno slot a un altro.
-6.  **Rimuovere dal Calendario**: Per "de-pianificare" una sessione, trascinala dalla griglia e rilasciala di nuovo nella colonna "Sessioni da Assegnare".
+1.  **Posizionare**: Trascina una sessione dalla colonna sinistra sulla griglia. Un pop-up ti chiederà l'**orario di inizio preciso**.
+2.  **Assegnare Coach**: Trascina un coach dalla lista di sinistra direttamente sopra una sessione già pianificata sulla griglia.
+3.  **Modificare/Spostare**: Clicca su una sessione in griglia per cambiare orario o gestire i coach (selezione multipla). Puoi anche trascinare una sessione già pianificata per spostarla di orario o palestra.
+4.  **Rimuovere**: Trascina una sessione dalla griglia di nuovo verso la colonna "Sessioni da Assegnare" per toglierla dal calendario.
 
 ### 3.4. Analisi: La Dashboard
 
 La Dashboard offre una panoramica statistica della tua configurazione attiva.
-- **Card Superiori**: Mostrano i dati chiave: numero di palestre, squadre, coach, ore totali richieste e disponibili, e la percentuale di utilizzo delle risorse.
-- **Grafici Principali**: Confrontano le ore totali disponibili con quelle richieste su base settimanale e stagionale.
-- **Tabelle e Grafici di Dettaglio**: Forniscono un'analisi visiva del carico di lavoro per ogni singola squadra, della disponibilità di ogni palestra e dell'impegno di ogni allenatore.
+- **Card Superiori**: Indicatori chiave centrati con icone (totale palestre, squadre, coach, ore settimanali e percentuale di utilizzo).
+- **Grafici Principali**: Confronto tra ore disponibili (Blu Navy) e richieste (Granata).
+- **Analisi Dettagliata**: Tabelle e grafici specifici per ogni Squadra, Palestra e Coach, permettendoti di individuare sovraccarichi o risorse inutilizzate.
 
 ### 3.5. Stampa e Condivisione: La Pagina di Stampa
 
-Questa sezione ti permette di creare documenti professionali da stampare o salvare in PDF.
+Scegli come presentare il tuo lavoro finale:
 
-1.  **Scegli il Formato**:
-    - **Stampa Tabellare**: Genera tabelle di testo chiare e compatte. Ideale per report dettagliati. La stampa è ottimizzata per un foglio **verticale (portrait)**.
-    - **Stampa Planner**: Genera una vista grafica, simile allo Scheduler. Ideale per una visione d'insieme del palinsesto. La stampa è ottimizzata per un foglio **orizzontale (landscape)**.
-2.  **Scegli come Raggruppare**: Per entrambi i formati, puoi decidere se organizzare il report per Palestra, Squadra, Giorno o Coach.
-3.  **Filtra**: Dopo aver scelto il raggruppamento, puoi decidere di stampare **tutti** gli elementi (es. tutte le squadre) o di selezionarne uno specifico dal secondo menu a tendina per una stampa mirata.
-4.  **Stampa**: Clicca sul pulsante "Stampa / Salva PDF". Si aprirà la finestra di dialogo di stampa del tuo sistema operativo, da cui potrai stampare direttamente o scegliere l'opzione "Salva come PDF".
+1.  **Formati**:
+    *   **Stampa Tabellare**: Report testuale preciso, ottimizzato per fogli in verticale (Portrait).
+    *   **Stampa Planner**: Report grafico (tipo calendario) con blocchi colorati, ottimizzato per fogli in orizzontale (Landscape).
+2.  **Ottimizzazioni Intelligenti**:
+    *   **Planner Grafico**: La scala temporale verticale si adatta automaticamente dal primo all'ultimo allenamento della giornata per massimizzare la leggibilità.
+    *   **Filtri**: Puoi decidere di stampare il programma completo ("Tutti") o filtrare per una specifica Palestra, Squadra, Giorno o Coach.
+3.  **Salvataggio**: Clicca "Stampa / Salva PDF" per generare il documento finale tramite le funzioni del tuo browser.
+
+---
+
+## 4. Consigli Utili
+
+- **Esporta spesso**: Essendo i dati salvati solo nel browser, pulire la cache del browser potrebbe cancellarli. Esporta regolarmente un file di backup sul tuo PC.
+- **Leggibilità Planner**: Se hai molti allenamenti concentrati, la stampa Planner in orizzontale è la scelta migliore per avere una visione d'insieme chiara.
+- **Colori**: L'applicazione assegna automaticamente colori diversi alle squadre per aiutarti a distinguerle a colpo d'occhio nello Scheduler e nel Planner.

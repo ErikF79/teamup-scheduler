@@ -16,6 +16,10 @@ const inter = Inter({
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
+// Cattura precocemente l'evento di installabilità PWA (vedi use-install-prompt).
+const installPromptInitScript =
+  "(function(){try{window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__teamupBIP=e;window.dispatchEvent(new Event('teamup:install-available'));});}catch(e){}})();";
+
 export const metadata: Metadata = {
   title: {
     default: "TeamUp Scheduler",
@@ -69,6 +73,9 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
+        <script
+          dangerouslySetInnerHTML={{ __html: installPromptInitScript }}
         />
       </head>
       <body className="font-body">

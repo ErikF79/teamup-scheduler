@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  Download,
   LayoutDashboard,
   Menu,
   Moon,
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/teamup/theme-provider";
 import { useTeamUpData } from "@/hooks/use-teamup-data";
+import { useInstallPrompt } from "@/hooks/use-install-prompt";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -127,6 +129,7 @@ export function AppShell({
   fullBleed = false,
 }: AppShellProps) {
   const { activeUser, logout } = useTeamUpData();
+  const { canInstall, promptInstall } = useInstallPrompt();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   const handleRefresh = () => {
@@ -159,6 +162,18 @@ export function AppShell({
               <span className="truncate">{activeUser ?? "—"}</span>
             </span>
             <span className="flex items-center">
+              {canInstall && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => void promptInstall()}
+                  title="Installa app"
+                  aria-label="Installa app"
+                  className="text-primary hover:text-primary"
+                >
+                  <Download className="h-[18px] w-[18px]" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -203,6 +218,18 @@ export function AppShell({
           </span>
         </div>
         <div className="flex items-center">
+          {canInstall && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => void promptInstall()}
+              aria-label="Installa app"
+              title="Installa app"
+              className="text-primary hover:text-primary"
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+          )}
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

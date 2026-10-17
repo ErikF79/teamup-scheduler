@@ -1,0 +1,1218 @@
+{
+  "configurations": [
+    {
+      "id": "config-initial-1",
+      "name": "Configurazione di Default",
+      "gyms": [
+        {
+          "id": "gym-1",
+          "name": "Palestra Nord",
+          "availability": [
+            {
+              "key": 1,
+              "name": "Lunedì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 2,
+              "name": "Martedì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 3,
+              "name": "Mercoledì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 4,
+              "name": "Giovedì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 5,
+              "name": "Venerdì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 6,
+              "name": "Sabato",
+              "slots": [
+                {
+                  "start": 540,
+                  "end": 1200
+                }
+              ]
+            },
+            {
+              "key": 7,
+              "name": "Domenica",
+              "slots": [
+                {
+                  "start": 540,
+                  "end": 1200
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gym-2",
+          "name": "Palestra Sud",
+          "availability": [
+            {
+              "key": 1,
+              "name": "Lunedì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 2,
+              "name": "Martedì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 3,
+              "name": "Mercoledì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 4,
+              "name": "Giovedì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 5,
+              "name": "Venerdì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 6,
+              "name": "Sabato",
+              "slots": [
+                {
+                  "start": 540,
+                  "end": 1200
+                }
+              ]
+            },
+            {
+              "key": 7,
+              "name": "Domenica",
+              "slots": [
+                {
+                  "start": 540,
+                  "end": 1200
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gym-3",
+          "name": "Palestra Est",
+          "availability": [
+            {
+              "key": 1,
+              "name": "Lunedì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 2,
+              "name": "Martedì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 3,
+              "name": "Mercoledì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 4,
+              "name": "Giovedì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 5,
+              "name": "Venerdì",
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1380
+                }
+              ]
+            },
+            {
+              "key": 6,
+              "name": "Sabato",
+              "slots": [
+                {
+                  "start": 540,
+                  "end": 1200
+                }
+              ]
+            },
+            {
+              "key": 7,
+              "name": "Domenica",
+              "slots": [
+                {
+                  "start": 540,
+                  "end": 1200
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "teams": [
+        {
+          "id": "team-1",
+          "name": "Leoni U12",
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-2",
+          "name": "Tigri U14",
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-3",
+          "name": "Aquile U16",
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-4",
+          "name": "Pantere U18",
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-5",
+          "name": "Scoiattoli U10",
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-6",
+          "name": "Pulcini U8",
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        }
+      ],
+      "sessions": [
+        {
+          "id": "session-team-1-1",
+          "teamId": "team-1",
+          "duration": 75,
+          "gymId": null,
+          "day": null,
+          "startTime": null
+        },
+        {
+          "id": "session-team-1-2",
+          "teamId": "team-1",
+          "duration": 75,
+          "gymId": "gym-1",
+          "day": 1,
+          "startTime": 1020
+        },
+        {
+          "id": "session-team-2-1",
+          "teamId": "team-2",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null
+        },
+        {
+          "id": "session-team-2-2",
+          "teamId": "team-2",
+          "duration": 90,
+          "gymId": "gym-1",
+          "day": 3,
+          "startTime": 1140
+        },
+        {
+          "id": "session-team-2-3",
+          "teamId": "team-2",
+          "duration": 75,
+          "gymId": "gym-2",
+          "day": 2,
+          "startTime": 1080
+        },
+        {
+          "id": "session-team-3-1",
+          "teamId": "team-3",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null
+        },
+        {
+          "id": "session-team-3-2",
+          "teamId": "team-3",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null
+        },
+        {
+          "id": "session-team-4-1",
+          "teamId": "team-4",
+          "duration": 120,
+          "gymId": "gym-3",
+          "day": 5,
+          "startTime": 1200
+        },
+        {
+          "id": "session-team-5-1",
+          "teamId": "team-5",
+          "duration": 60,
+          "gymId": "gym-2",
+          "day": 1,
+          "startTime": 1080
+        },
+        {
+          "id": "session-team-5-2",
+          "teamId": "team-5",
+          "duration": 75,
+          "gymId": null,
+          "day": null,
+          "startTime": null
+        },
+        {
+          "id": "session-team-6-1",
+          "teamId": "team-6",
+          "duration": 60,
+          "gymId": "gym-2",
+          "day": 1,
+          "startTime": 1020
+        }
+      ],
+      "teamColors": {
+        "team-1": "hsl(210 90% 60%)",
+        "team-2": "hsl(45 90% 55%)",
+        "team-3": "hsl(10 90% 60%)",
+        "team-4": "hsl(150 80% 50%)",
+        "team-5": "hsl(300 80% 60%)",
+        "team-6": "hsl(25 85% 55%)"
+      }
+    },
+    {
+      "gyms": [
+        {
+          "id": "gym-1",
+          "name": "Palestra Pieris",
+          "availability": [
+            {
+              "key": 1,
+              "name": "Lunedì",
+              "start": 990,
+              "end": 1140,
+              "slots": [
+                {
+                  "start": 990,
+                  "end": 1140
+                },
+                {
+                  "start": 1260,
+                  "end": 1350
+                }
+              ]
+            },
+            {
+              "key": 2,
+              "name": "Martedì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 3,
+              "name": "Mercoledì",
+              "start": 17,
+              "end": 23,
+              "slots": [
+                {
+                  "start": 990,
+                  "end": 1350
+                }
+              ]
+            },
+            {
+              "key": 4,
+              "name": "Giovedì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 5,
+              "name": "Venerdì",
+              "start": 17,
+              "end": 23,
+              "slots": [
+                {
+                  "start": 990,
+                  "end": 1350
+                }
+              ]
+            },
+            {
+              "key": 6,
+              "name": "Sabato",
+              "start": 14,
+              "end": 20,
+              "slots": [
+                {
+                  "start": 870,
+                  "end": 1110
+                }
+              ]
+            },
+            {
+              "key": 7,
+              "name": "Domenica",
+              "start": 9,
+              "end": 20,
+              "slots": [
+                {
+                  "start": 900,
+                  "end": 1260
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "gym-2",
+          "name": "Palestra Turriaco",
+          "availability": [
+            {
+              "key": 1,
+              "name": "Lunedì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 2,
+              "name": "Martedì",
+              "start": 17,
+              "end": 23,
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1350
+                }
+              ]
+            },
+            {
+              "key": 3,
+              "name": "Mercoledì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 4,
+              "name": "Giovedì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 5,
+              "name": "Venerdì",
+              "start": 17,
+              "end": 23,
+              "slots": [
+                {
+                  "start": 930,
+                  "end": 1350
+                }
+              ]
+            },
+            {
+              "key": 6,
+              "name": "Sabato",
+              "start": 14,
+              "end": 20
+            },
+            {
+              "key": 7,
+              "name": "Domenica",
+              "start": 9,
+              "end": 20
+            }
+          ]
+        },
+        {
+          "id": "gym-3",
+          "name": "Palestra Fiumicello",
+          "availability": [
+            {
+              "key": 1,
+              "name": "Lunedì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 2,
+              "name": "Martedì",
+              "start": 17,
+              "end": 23,
+              "slots": [
+                {
+                  "start": 1020,
+                  "end": 1110
+                }
+              ]
+            },
+            {
+              "key": 3,
+              "name": "Mercoledì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 4,
+              "name": "Giovedì",
+              "start": 17,
+              "end": 23,
+              "slots": [
+                {
+                  "start": 990,
+                  "end": 1080
+                }
+              ]
+            },
+            {
+              "key": 5,
+              "name": "Venerdì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 6,
+              "name": "Sabato",
+              "start": 14,
+              "end": 20
+            },
+            {
+              "key": 7,
+              "name": "Domenica",
+              "start": 9,
+              "end": 20
+            }
+          ]
+        },
+        {
+          "id": "gym-1753126923753",
+          "name": "Nuova Monfalcone",
+          "availability": [
+            {
+              "key": 1,
+              "name": "Lunedì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 2,
+              "name": "Martedì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 3,
+              "name": "Mercoledì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 4,
+              "name": "Giovedì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 5,
+              "name": "Venerdì",
+              "start": 17,
+              "end": 23
+            },
+            {
+              "key": 6,
+              "name": "Sabato",
+              "start": 14,
+              "end": 20
+            },
+            {
+              "key": 7,
+              "name": "Domenica",
+              "start": 9,
+              "end": 20
+            }
+          ]
+        },
+        {
+          "id": "gym-1753126925541",
+          "name": "Nuova BEM Staranzano",
+          "availability": [
+            {
+              "key": 1,
+              "name": "Lunedì",
+              "start": 19,
+              "end": 23,
+              "slots": [
+                {
+                  "start": 1125,
+                  "end": 1320
+                }
+              ]
+            },
+            {
+              "key": 2,
+              "name": "Martedì",
+              "start": 0,
+              "end": 0
+            },
+            {
+              "key": 3,
+              "name": "Mercoledì",
+              "start": 19,
+              "end": 23,
+              "slots": [
+                {
+                  "start": 1125,
+                  "end": 1320
+                }
+              ]
+            },
+            {
+              "key": 4,
+              "name": "Giovedì",
+              "start": 18,
+              "end": 22,
+              "slots": [
+                {
+                  "start": 1080,
+                  "end": 1260
+                }
+              ]
+            },
+            {
+              "key": 5,
+              "name": "Venerdì",
+              "start": 0,
+              "end": 0
+            },
+            {
+              "key": 6,
+              "name": "Sabato",
+              "start": 0,
+              "end": 0
+            },
+            {
+              "key": 7,
+              "name": "Domenica",
+              "start": 0,
+              "end": 0
+            }
+          ]
+        },
+        {
+          "id": "gym-1753181771466",
+          "name": "San Pier d'Isonzo",
+          "availability": [
+            {
+              "key": 1,
+              "name": "Lunedì",
+              "slots": [
+                {
+                  "start": 1020,
+                  "end": 1110
+                }
+              ]
+            },
+            {
+              "key": 2,
+              "name": "Martedì",
+              "slots": [
+                {
+                  "start": 1095,
+                  "end": 1185
+                }
+              ]
+            },
+            {
+              "key": 3,
+              "name": "Mercoledì",
+              "slots": []
+            },
+            {
+              "key": 4,
+              "name": "Giovedì",
+              "slots": [
+                {
+                  "start": 1020,
+                  "end": 1080
+                }
+              ]
+            },
+            {
+              "key": 5,
+              "name": "Venerdì",
+              "slots": []
+            },
+            {
+              "key": 6,
+              "name": "Sabato",
+              "slots": []
+            },
+            {
+              "key": 7,
+              "name": "Domenica",
+              "slots": []
+            }
+          ]
+        }
+      ],
+      "teams": [
+        {
+          "id": "team-1",
+          "name": "NBI Pulcini",
+          "sessionsPerWeek": 2,
+          "sessionDuration": 60,
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-31"
+        },
+        {
+          "id": "team-2",
+          "name": "NBI Aquilotti",
+          "sessionsPerWeek": 2,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-01",
+          "seasonEndDate": "2026-05-31"
+        },
+        {
+          "id": "team-3",
+          "name": "NBI Scoiattoli",
+          "sessionsPerWeek": 2,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-01",
+          "seasonEndDate": "2026-05-31"
+        },
+        {
+          "id": "team-4",
+          "name": "NBI Under 14",
+          "sessionsPerWeek": 3,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-01",
+          "seasonEndDate": "2026-05-31"
+        },
+        {
+          "id": "team-1753127455119",
+          "name": "NBI Under 15",
+          "sessionsPerWeek": 3,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-1753127470874",
+          "name": "NBI/Gradisca Under 19",
+          "sessionsPerWeek": 3,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-1753127486839",
+          "name": "1a Squadra Maschile - DR2",
+          "sessionsPerWeek": 3,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-1753127501662",
+          "name": "1a Squadra Femminile - Serie C",
+          "sessionsPerWeek": 3,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-1753127526474",
+          "name": "Baskin ",
+          "sessionsPerWeek": 2,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-1753127537778",
+          "name": "Amatori Pieris",
+          "sessionsPerWeek": 2,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-1753127704628",
+          "name": "NBI Fiumicello",
+          "sessionsPerWeek": 2,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        },
+        {
+          "id": "team-1753127728658",
+          "name": "Baskin Monfalcone",
+          "sessionsPerWeek": 2,
+          "sessionDuration": 90,
+          "seasonStartDate": "2025-09-05",
+          "seasonEndDate": "2026-05-30"
+        }
+      ],
+      "sessions": [
+        {
+          "id": "session-team-3-1",
+          "teamId": "team-3",
+          "duration": 90,
+          "gymId": "gym-1",
+          "day": 5,
+          "startTime": 990,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-3-2",
+          "teamId": "team-3",
+          "duration": 90,
+          "gymId": "gym-1",
+          "day": 1,
+          "startTime": 1050,
+          "coachIds": [
+            "coach-1753289961265",
+            "coach-1753289987283"
+          ]
+        },
+        {
+          "id": "session-team-1-1",
+          "teamId": "team-1",
+          "duration": 60,
+          "gymId": "gym-1",
+          "day": 1,
+          "startTime": 990,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1-2",
+          "teamId": "team-1",
+          "duration": 60,
+          "gymId": "gym-1753181771466",
+          "day": 4,
+          "startTime": 1020,
+          "coachIds": [
+            "coach-1753289994996"
+          ]
+        },
+        {
+          "id": "session-team-2-1",
+          "teamId": "team-2",
+          "duration": 90,
+          "gymId": "gym-1",
+          "day": 3,
+          "startTime": 1020,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-2-2",
+          "teamId": "team-2",
+          "duration": 90,
+          "gymId": "gym-1",
+          "day": 5,
+          "startTime": 1080,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-4-1",
+          "teamId": "team-4",
+          "duration": 90,
+          "gymId": "gym-2",
+          "day": 2,
+          "startTime": 930,
+          "coachIds": [
+            "coach-1753290026439",
+            "coach-1753290016349"
+          ]
+        },
+        {
+          "id": "session-team-4-2",
+          "teamId": "team-4",
+          "duration": 90,
+          "gymId": "gym-2",
+          "day": 5,
+          "startTime": 930,
+          "coachIds": [
+            "coach-1753290016349",
+            "coach-1753290026439"
+          ]
+        },
+        {
+          "id": "session-team-4-3",
+          "teamId": "team-4",
+          "duration": 90,
+          "gymId": "gym-1753126925541",
+          "day": 3,
+          "startTime": 1125,
+          "coachIds": [
+            "coach-1753290016349",
+            "coach-1753290026439"
+          ]
+        },
+        {
+          "id": "session-team-1753127470874-1",
+          "teamId": "team-1753127470874",
+          "duration": 90,
+          "gymId": "gym-1",
+          "day": 3,
+          "startTime": 1110,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1753127470874-2",
+          "teamId": "team-1753127470874",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1753127470874-3",
+          "teamId": "team-1753127470874",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1753127486839-1",
+          "teamId": "team-1753127486839",
+          "duration": 90,
+          "gymId": "gym-1",
+          "day": 1,
+          "startTime": 1260,
+          "coachIds": [
+            "coach-1753290056076"
+          ]
+        },
+        {
+          "id": "session-team-1753127486839-2",
+          "teamId": "team-1753127486839",
+          "duration": 90,
+          "gymId": "gym-1",
+          "day": 3,
+          "startTime": 1200,
+          "coachIds": [
+            "coach-1753290056076"
+          ]
+        },
+        {
+          "id": "session-team-1753127486839-3",
+          "teamId": "team-1753127486839",
+          "duration": 90,
+          "gymId": "gym-1",
+          "day": 5,
+          "startTime": 1170,
+          "coachIds": [
+            "coach-1753290056076"
+          ]
+        },
+        {
+          "id": "session-team-1753127501662-1",
+          "teamId": "team-1753127501662",
+          "duration": 90,
+          "gymId": "gym-2",
+          "day": 2,
+          "startTime": 1230,
+          "coachIds": [
+            "coach-1753290097752"
+          ]
+        },
+        {
+          "id": "session-team-1753127501662-2",
+          "teamId": "team-1753127501662",
+          "duration": 90,
+          "gymId": "gym-2",
+          "day": 5,
+          "startTime": 1230,
+          "coachIds": [
+            "coach-1753290097752"
+          ]
+        },
+        {
+          "id": "session-team-1753127501662-3",
+          "teamId": "team-1753127501662",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1753127526474-1",
+          "teamId": "team-1753127526474",
+          "duration": 90,
+          "gymId": "gym-2",
+          "day": 2,
+          "startTime": 1140,
+          "coachIds": [
+            "coach-1753289971613",
+            "coach-1753290075329"
+          ]
+        },
+        {
+          "id": "session-team-1753127526474-2",
+          "teamId": "team-1753127526474",
+          "duration": 90,
+          "gymId": "gym-2",
+          "day": 5,
+          "startTime": 1140,
+          "coachIds": [
+            "coach-1753289971613",
+            "coach-1753290075329"
+          ]
+        },
+        {
+          "id": "session-team-1753127537778-1",
+          "teamId": "team-1753127537778",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1753127537778-2",
+          "teamId": "team-1753127537778",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1753127728658-1",
+          "teamId": "team-1753127728658",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1753127728658-2",
+          "teamId": "team-1753127728658",
+          "duration": 90,
+          "gymId": null,
+          "day": null,
+          "startTime": null,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1753127704628-1",
+          "teamId": "team-1753127704628",
+          "duration": 90,
+          "gymId": "gym-3",
+          "day": 2,
+          "startTime": 1020,
+          "coachIds": [
+            "coach-1753289979457"
+          ]
+        },
+        {
+          "id": "session-team-1753127704628-2",
+          "teamId": "team-1753127704628",
+          "duration": 90,
+          "gymId": "gym-3",
+          "day": 4,
+          "startTime": 990,
+          "coachIds": [
+            "coach-1753289979457"
+          ]
+        },
+        {
+          "id": "session-team-1753127455119-1",
+          "teamId": "team-1753127455119",
+          "duration": 120,
+          "gymId": "gym-2",
+          "day": 2,
+          "startTime": 1020,
+          "coachIds": [
+            "coach-1753290016349",
+            "coach-1753290026439"
+          ]
+        },
+        {
+          "id": "session-team-1753127455119-2",
+          "teamId": "team-1753127455119",
+          "duration": 120,
+          "gymId": "gym-2",
+          "day": 5,
+          "startTime": 1020,
+          "coachIds": []
+        },
+        {
+          "id": "session-team-1753127455119-3",
+          "teamId": "team-1753127455119",
+          "duration": 90,
+          "gymId": "gym-1753126925541",
+          "day": 3,
+          "startTime": 1215,
+          "coachIds": [
+            "coach-1753290016349",
+            "coach-1753290026439"
+          ]
+        }
+      ],
+      "teamColors": {
+        "team-1": "hsl(210 90% 60%)",
+        "team-2": "hsl(45 90% 55%)",
+        "team-3": "hsl(10 90% 60%)",
+        "team-4": "hsl(150 80% 50%)",
+        "team-1753127455119": "hsl(25.133366213953945, 70%, 50%)",
+        "team-1753127470874": "hsl(80.4647146953973, 70%, 50%)",
+        "team-1753127486839": "hsl(117.61458555981501, 70%, 50%)",
+        "team-1753127501662": "hsl(301.46234338935614, 70%, 50%)",
+        "team-1753127526474": "hsl(271.1862775407258, 70%, 50%)",
+        "team-1753127537778": "hsl(298.3725254203691, 70%, 50%)",
+        "team-1753127704628": "hsl(276.9163146732154, 70%, 50%)",
+        "team-1753127728658": "hsl(156.9269493035277, 70%, 50%)"
+      },
+      "id": "config-imported-1753268362293",
+      "name": "Configurazione Importata",
+      "coaches": [
+        {
+          "id": "coach-1753289961265",
+          "name": "Sara Pesci"
+        },
+        {
+          "id": "coach-1753289971613",
+          "name": "Erik Franceschini"
+        },
+        {
+          "id": "coach-1753289979457",
+          "name": "Paolo Boscarol"
+        },
+        {
+          "id": "coach-1753289987283",
+          "name": "Luca Bean"
+        },
+        {
+          "id": "coach-1753289994996",
+          "name": "Massimo Garbino"
+        },
+        {
+          "id": "coach-1753290007286",
+          "name": "Claudio Tonzar"
+        },
+        {
+          "id": "coach-1753290016349",
+          "name": "Paolo Barbana"
+        },
+        {
+          "id": "coach-1753290026439",
+          "name": "Adriano Paliaga"
+        },
+        {
+          "id": "coach-1753290056076",
+          "name": "Mauro Andrian"
+        },
+        {
+          "id": "coach-1753290075329",
+          "name": "Alessio Beltrame"
+        },
+        {
+          "id": "coach-1753290097752",
+          "name": "Daniele Misdaris"
+        },
+        {
+          "id": "coach-1753290115910",
+          "name": "Giancarlo Gracalich"
+        }
+      ]
+    }
+  ],
+  "activeConfigurationId": "config-imported-1753268362293"
+}
